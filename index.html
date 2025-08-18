@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Neural Network Visualization</title>
+  <title>Sonic Neural Network by The Prototype Live</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&display=swap" rel="stylesheet"/>
@@ -206,6 +205,77 @@
       .theme-grid { grid-template-columns: repeat(4, 1fr); }
       #density-controls { width: 80%; margin-top: 15px; }
     }
+    .floating-play-btn {
+margin-top: 10px;
+width: 62px;
+height: 62px;
+border-radius: 12px;
+display: inline-flex;
+align-items: center;
+justify-content: center;
+background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+border: 1px solid rgba(255,255,255,0.06);
+box-shadow: 0 8px 24px rgba(0,0,0,0.45), 0 0 12px rgba(255,190,120,0.04) inset;
+cursor: var(--wand-cursor);
+transition: transform .18s ease, box-shadow .18s ease;
+animation: breathe 6s ease-in-out infinite;
+position: relative;
+overflow: hidden;
+z-index: 11;
+}
+
+/* Play image inside button */
+.floating-play-btn img {
+width: 52%;
+height: 52%;
+display: block;
+pointer-events: none;
+}
+
+/* Pause icon made with two bars */
+.pause-icon {
+display: inline-flex;
+align-items: center;
+justify-content: center;
+gap: 6px;
+}
+.pause-icon span {
+display: inline-block;
+width: 8px;
+height: 26px;
+border-radius: 3px;
+background: linear-gradient(180deg, #ffd9b8, #ffb070);
+box-shadow: 0 6px 18px rgba(255,160,80,0.45), 0 0 12px rgba(255,200,120,0.12) inset;
+}
+
+/* Playing state: stronger glow */
+.floating-play-btn.playing {
+box-shadow: 0 14px 40px rgba(255,140,50,0.28), 0 0 28px rgba(255,180,110,0.14);
+transform: translateY(-2px);
+}
+
+/* bounce animation applied on click */
+@keyframes btn-bounce {
+0%   { transform: scale(1); }
+35%  { transform: scale(0.88) rotate(-1deg); }
+70%  { transform: scale(1.05) rotate(1deg); }
+100% { transform: scale(1); }
+}
+.floating-play-btn.bounce {
+animation: btn-bounce 360ms cubic-bezier(.25,.8,.25,1);
+}
+
+/* Small accessible focus outline */
+.floating-play-btn:focus {
+outline: 2px solid rgba(255,200,140,0.28);
+outline-offset: 3px;
+}
+
+/* Responsive sizing (optional) */
+@media (max-width:640px) {
+.floating-play-btn { width: 54px; height: 54px; }
+.pause-icon span { height: 22px; width: 7px; }
+}
   </style>
 </head>
 <body>
@@ -238,6 +308,13 @@
 
     <div id="formation-label">Cube</div>
   </div>
+
+  <button id="floating-audio-btn" class="floating-play-btn" aria-label="Play music" title="Play music" type="button">
+    <img id="floating-play-img" src="https://paradoxuni.b-cdn.net/!File%20Organization/!_Universal_Imagery/ICONS_AND_ART/Play.png" alt="Play" />
+    <div id="floating-pause-icon" class="pause-icon" aria-hidden="true" style="display:none;">
+      <span></span><span></span>
+    </div>
+  </button>
 
   <div class="legend">
     <p>Pitch</p>
@@ -414,7 +491,10 @@
           const ripple = new Ripple(ctx, this.epicenterX, this.epicenterY, this.rippleSpeed, decay);
           this.ripples.push(ripple);
         }
-        this.ripples[0].sound.play();
+        // Play the sound for the foremost ripple (existing behavior)
+        if (this.ripples[0] && this.ripples[0].sound) {
+          try { this.ripples[0].sound.play(); } catch (e) { /* ignore */ }
+        }
       }
       destroyRipple(index) { this.ripples.splice(index, 1); }
       update() {
@@ -425,6 +505,7 @@
       }
       render() { for (let i = 0; i < this.ripples.length; i++) this.ripples[i].render(); }
     }
+
     class Ripple {
       constructor(ctx, cx, cy, r, decay) {
         this.ctx = ctx;
@@ -437,48 +518,73 @@
         this.epicenterY = cy;
         this.killMe = false;
         this.opacity = 1;
+        // colorize based on current theme palette with slight variation
+        try {
+          const palette = colorPalettes[config.activePaletteIndex] || colorPalettes[0];
+          const pick = palette[Math.floor(Math.random() * palette.length)].clone();
+          // vary within ~20 shades (small HSL offsets)
+          pick.offsetHSL(THREE.MathUtils.randFloatSpread(0.12), THREE.MathUtils.randFloatSpread(0.18), THREE.MathUtils.randFloatSpread(0.18));
+          const shadow = pick.clone();
+          shadow.offsetHSL(0, 0, 0.10); // slightly lighter for shadow ring
+
+          this.baseRGB = { r: Math.round(pick.r * 255), g: Math.round(pick.g * 255), b: Math.round(pick.b * 255) };
+          this.shadowRGB = { r: Math.round(shadow.r * 255), g: Math.round(shadow.g * 255), b: Math.round(shadow.b * 255) };
+        } catch (err) {
+          // fallback to warm tone
+          this.baseRGB = { r: 255, g: 200, b: 120 };
+          this.shadowRGB = { r: 200, g: 140, b: 80 };
+        }
         this.createSound();
       }
       createSound() {
-        this.sound = new Pizzicato.Sound({
-          source: 'wave',
-          options: {
-            volume: Math.min(this.epicenterY / render.height, 1.0),
-            frequency: Math.max(100, Math.min(this.epicenterX * 2, 1000))
-          }
-        });
-        const delay = new Pizzicato.Effects.DubDelay({ feedback: 0.6, time: 0.8, mix: 0.5, cutoff: 600 });
-        this.sound.addEffect(delay);
+        // preserve original behavior: a Pizzicato wave sound with delay
+        try {
+          this.sound = new Pizzicato.Sound({
+            source: 'wave',
+            options: {
+              volume: Math.min(this.epicenterY / render.height, 1.0),
+              frequency: Math.max(100, Math.min(this.epicenterX * 2, 1000))
+            }
+          });
+          const delay = new Pizzicato.Effects.DubDelay({ feedback: 0.6, time: 0.8, mix: 0.5, cutoff: 600 });
+          this.sound.addEffect(delay);
+        } catch (err) {
+          this.sound = { play: () => {}, stop: () => {} };
+        }
       }
       update() {
         this.rDelta = this.rSpeed * this.decay;
         this.radius += this.rDelta;
         this.shadowRadius += this.rDelta;
-        if (this.radius > 120) this.sound.stop();
+        if (this.radius > 120 && this.sound && typeof this.sound.stop === 'function') this.sound.stop();
         if (this.lineWidth > 1) this.lineWidth -= 0.4 * this.decay;
         if (this.radius > 320) this.opacity -= 0.06; // longer presence
         if (this.radius > 460) this.killMe = true;
       }
       render() {
         const ctx = this.ctx;
+        // shadow ring (outer, diffused)
         ctx.beginPath();
         ctx.lineWidth = this.lineWidth + 3;
-        ctx.strokeStyle = `hsla(33, 97%, 49%, ${this.opacity * 0.18})`; // ~82% transparent
+        ctx.strokeStyle = `rgba(${this.shadowRGB.r}, ${this.shadowRGB.g}, ${this.shadowRGB.b}, ${Math.max(0, this.opacity * 0.18)})`;
         ctx.arc(this.epicenterX, this.epicenterY, this.shadowRadius, 0, 2 * Math.PI);
         ctx.stroke();
         ctx.closePath();
+
+        // core ring
         ctx.beginPath();
         ctx.lineWidth = this.lineWidth;
-        ctx.strokeStyle = `hsla(255, 255%, 255%, ${this.opacity * 0.20})`; // ~80% transparent
+        ctx.strokeStyle = `rgba(${this.baseRGB.r}, ${this.baseRGB.g}, ${this.baseRGB.b}, ${Math.max(0, this.opacity * 0.20)})`;
         ctx.arc(this.epicenterX, this.epicenterY, this.radius, 0, 2 * Math.PI);
         ctx.stroke();
         ctx.closePath();
       }
     }
+
     const waves = [];
     let started = false;
 
-    // Shaders
+    // Shaders (unchanged)
     const noiseFunctions = `
       vec3 mod289(vec3 x){return x-floor(x*(1.0/289.0))*289.0;}
       vec4 mod289(vec4 x){return x-floor(x*(1.0/289.0))*289.0;}
@@ -1781,6 +1887,93 @@
     // Init
     createNetworkVisualization(0, 1.0, false);
     animate();
+  </script>
+
+  <!-- AUDIO: small non-module script that wires the existing button to play/pause the track (looping) -->
+  <script>
+  (function () {
+    // URL of the song to play
+    const SONG_URL = "https://paradoxuni.b-cdn.net/!File%20Organization/MUSIC/Proto_As_You_Are.mp3";
+
+    const btn = document.getElementById('floating-audio-btn');
+    if (!btn) return;
+
+    const playImg = document.getElementById('floating-play-img');
+    const pauseIcon = document.getElementById('floating-pause-icon');
+
+    // Create audio element and configure
+    const audio = new Audio(SONG_URL);
+    audio.loop = true;
+    audio.preload = 'auto';
+    audio.volume = 0.85;
+    window.__floatingAudio = audio; // debug handle
+
+    // Bounce helper
+    function triggerBounce() {
+      btn.classList.remove('bounce');
+      void btn.offsetWidth;
+      btn.classList.add('bounce');
+      const onEnd = (e) => {
+        if (e.animationName === 'btn-bounce') {
+          btn.classList.remove('bounce');
+          btn.removeEventListener('animationend', onEnd);
+        }
+      };
+      btn.addEventListener('animationend', onEnd);
+    }
+
+    // UI state toggle
+    function setPlayingUI(isPlaying) {
+      if (isPlaying) {
+        btn.classList.add('playing');
+        if (playImg) playImg.style.display = 'none';
+        if (pauseIcon) pauseIcon.style.display = 'inline-flex';
+        btn.setAttribute('aria-label', 'Pause music');
+        btn.title = 'Pause music';
+      } else {
+        btn.classList.remove('playing');
+        if (playImg) playImg.style.display = 'block';
+        if (pauseIcon) pauseIcon.style.display = 'none';
+        btn.setAttribute('aria-label', 'Play music');
+        btn.title = 'Play music';
+      }
+    }
+
+    // initialize UI
+    setPlayingUI(false);
+
+    // Click to toggle play/pause
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      triggerBounce();
+
+      if (audio.paused) {
+        try {
+          await audio.play();
+          setPlayingUI(true);
+        } catch (err) {
+          console.warn('Playback error:', err);
+        }
+      } else {
+        audio.pause();
+        setPlayingUI(false);
+      }
+    });
+
+    // Keep UI in sync
+    audio.addEventListener('play', () => setPlayingUI(true));
+    audio.addEventListener('pause', () => setPlayingUI(false));
+
+    // Optional: try to start on first canvas click if user hasn't interacted with the button
+    document.addEventListener('click', function startOnce(e) {
+      // skip if user clicked UI controls
+      if (e.target.closest('.ui-panel') || e.target.closest('#floating-audio-btn')) return;
+      if (audio.paused) {
+        audio.play().then(() => setPlayingUI(true)).catch(()=>{});
+      }
+      document.removeEventListener('click', startOnce);
+    }, { once: true, passive: true });
+  })();
   </script>
 </body>
 </html>
