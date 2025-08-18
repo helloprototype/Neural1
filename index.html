@@ -8,25 +8,22 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    /* Cursor as a magical wand emoji */
-    html, body {
-      height: 100%;
-    }
+    /* Cursor: magical wand emoji always on screen */
+    html, body { height: 100%; }
     html {
-      /* Magical wand cursor, uses a data-URL SVG with the emoji. Fallback to auto. */
-      cursor: url('data:image/svg+xml;utf8,\
-<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32">\
-  <text x="0" y="26" font-family="Segoe UI Emoji" font-size="22">🪄</text>\
-</svg>') 16 16, auto;
+      cursor: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32'>\
+  <text x='0' y='28' font-family='Segoe UI Emoji' font-size='28'>🪄</text>\
+</svg>") 16 16, auto;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #000; overflow: hidden; }
 
-    /* Canvases: WebGL for visuals, overlay 2D for pulsing ripples (sourced from 2D canvas) */
+    /* Canvases: WebGL for visuals, overlay 2D for pulses */
     canvas#webgl-canvas { display: block; width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
     canvas#ripples-canvas { display: block; width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 2; pointer-events: none; }
 
-    /* UI Panel: Visual Theme with breathing animation, 90% opaque, 10% transparent */
+    /* Visual Theme panel: breathing, 90% opaque (10% transparent) */
     .ui-panel {
       position: absolute;
       top: 20px;
@@ -34,7 +31,7 @@
       z-index: 10;
       padding: 15px;
       border-radius: 12px;
-      background: rgba(0, 0, 0, 0.9); /* 90% opaque (10% transparent) */
+      background: rgba(0, 0, 0, 0.9); /* 90% opaque */
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       border: 1px solid rgba(255, 120, 50, 0.3);
@@ -47,8 +44,8 @@
       animation: breathe 6s ease-in-out infinite;
     }
     @keyframes breathe {
-      0%,100% { transform: scale(1); }
-      50% { transform: scale(1.02); }
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.03); }
     }
     #theme-selector-title { font-weight: 600; font-size: 15px; margin-bottom: 10px; }
     #formation-label { font-size: 13px; margin-top: 10px; color: rgba(255, 120, 50, 0.9); }
@@ -60,10 +57,10 @@
       cursor: pointer; transition: transform 0.2s, border-color 0.2s;
       outline: none; overflow: hidden;
     }
-    .theme-button:hover, .theme-button:focus { transform: scale(1.05); border-color: rgba(255, 255, 255, 0.7); }
+    .theme-button:hover, .theme-button:focus { transform: scale(1.05); border-color: rgba(255,255,255,0.7); }
     .theme-button.active {
       transform: scale(1.05);
-      border-color: rgba(255, 255, 255, 0.9);
+      border-color: rgba(255,255,255,0.9);
       box-shadow: 0 0 10px rgba(255, 200, 150, 0.6);
     }
     #theme-1 { background: linear-gradient(45deg, #4F46E5, #7C3AED, #C026D3, #DB2777); }
@@ -71,7 +68,17 @@
     #theme-3 { background: linear-gradient(45deg, #EC4899, #8B5CF6, #6366F1, #3B82F6); }
     #theme-4 { background: linear-gradient(45deg, #10B981, #A3E635, #FACC15, #FB923C); }
 
-    /* Subtle glow + breathing for PITCH & VOLUME and their container */
+    /* Arrows under the theme panel: navigate formations (1/2) */
+    .theme-arrows { display: flex; gap: 8px; margin-top: 8px; }
+    .arrow-btn {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.25);
+      color: #fff; width: 32px; height: 26px; border-radius: 6px;
+      font-size: 16px; line-height: 22px; cursor: pointer;
+    }
+    .arrow-btn:hover { background: rgba(255,255,255,0.18); }
+
+    /* Subtle breathing for Pitch/Volume glow */
     .legend {
       position: absolute;
       left: 25px;
@@ -81,45 +88,34 @@
       display: flex; gap: 14px; align-items: center;
       pointer-events: none;
     }
-    .legend p { user-select: none; font-size: 12px; text-transform: uppercase; letter-spacing: 5px; animation: legendGlow 3s ease-in-out infinite; }
-    .legend p.vert { writing-mode: vertical-lr; transform: rotate(180deg); font-size: 12px; }
-    @keyframes legendGlow {
-      0% { text-shadow: 0 0 6px rgba(255,255,255,.6); filter: saturate(1.0); }
-      50% { text-shadow: 0 0 18px rgba(255,255,255,1.0); filter: saturate(1.2); }
-      100% { text-shadow: 0 0 6px rgba(255,255,255,.6); filter: saturate(1.0); }
+    .legend p { user-select: none; font-size: 12px; text-transform: uppercase; letter-spacing: 5px; animation: breath-glow 3s ease-in-out infinite; text-shadow: 0 0 6px rgba(255,255,255,.6); }
+    .legend p.vert { writing-mode: vertical-lr; transform: rotate(180deg); font-size: 12px; text-shadow: 0 0 6px rgba(255,255,255,.6); animation: breath-glow 3s ease-in-out infinite; }
+
+    @keyframes breath-glow {
+      0%,100% { text-shadow: 0 0 6px rgba(255,255,255,.6); opacity: 0.92; }
+      50% { text-shadow: 0 0 18px rgba(255,255,255,1.0); opacity: 1.0; }
     }
 
-    /* Watermark */
+    /* Visual Theme breathing (panel itself) is already applied via keyframes; add a slightly stronger pulse for text nodes inside too if desired */
+    /* Watermark (small, centered near bottom) with stronger breathing */
     .watermark {
       position: fixed; left: 50%; transform: translateX(-50%);
-      bottom: 40px; opacity: 0.95; z-index: 9;
-      padding: 6px 12px; background: rgba(0,0,0,0.25);
-      border-radius: 8px;
-      animation: floatWatermark 6s ease-in-out infinite;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+      bottom: 24px; z-index: 9; width: 120px; height: auto; opacity: 0.95;
+      animation: float-watermark 6s ease-in-out infinite;
+      filter: saturate(1.15);
+      pointer-events: none;
     }
-    @keyframes floatWatermark {
+    @keyframes float-watermark {
       0% { transform: translateX(-50%) translateY(0); }
-      50% { transform: translateX(-50%) translateY(-6px); }
+      50% { transform: translateX(-50%) translateY(-8px); }
       100% { transform: translateX(-50%) translateY(0); }
     }
 
-    /* Arrows under the Visual Theme modal (navigation) */
-    .theme-arrows {
-      display: flex; gap: 12px; margin-top: 8px;
-    }
-    .arrow-btn {
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.25);
-      color: #fff; width: 32px; height: 26px; border-radius: 6px;
-      font-size: 16px; line-height: 22px; cursor: pointer;
-    }
-    .arrow-btn:hover { background: rgba(255,255,255,0.18); }
-
-    /* Density slider styling kept minimal but usable */
+    /* Density slider style remains simple and accessible */
     #density-controls { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; width: 100%; }
 
     @media (max-width: 640px) {
+      #theme-selector-title, #formation-label { font-size: 14px; }
       .theme-grid { grid-template-columns: repeat(4, 1fr); }
       .legend { left: 12px; bottom: 12px; }
     }
@@ -141,7 +137,7 @@
       <input type="range" min="20" max="100" value="100" class="density-slider" id="density-slider" aria-label="Network Density" />
     </div>
 
-    <!-- Arrows for navigation (Left = previous, Right = next) -->
+    <!-- Left/Right arrows under Visual Theme (1 and 2 actions) -->
     <div class="theme-arrows" aria-label="Navigate Formations">
       <button id="prev-formation" class="arrow-btn" title="Previous formation">←</button>
       <button id="next-formation" class="arrow-btn" title="Next formation">→</button>
@@ -151,13 +147,14 @@
   </div>
 
   <div class="legend" aria-label="Pitch and Volume">
-    <p id="legend-pitch" style="text-shadow:0 0 6px rgba(255,255,255,.6); animation: legendGlow 3s ease-in-out infinite;">Pitch</p>
-    <p class="vert" id="legend-volume" style="text-shadow:0 0 6px rgba(255,255,255,.6); animation: legendGlow 3s ease-in-out infinite;">Volume</p>
+    <p id="legend-pitch" style="color:#fff; text-shadow: 0 0 6px rgba(255,255,255,.6);">Pitch</p>
+    <p class="vert" id="legend-volume" style="color:#fff; text-shadow: 0 0 6px rgba(255,255,255,.6);">Volume</p>
   </div>
 
   <canvas id="webgl-canvas"></canvas>
   <canvas id="ripples-canvas"></canvas>
 
+  <!-- Watermark image - scaled down, breathing more intensely -->
   <img class="watermark" id="proto-watermark" alt="Proto watermark" src="https://paradoxuni.b-cdn.net/!File%20Organization/!PROTOTYPE/ProtoLogo.png" />
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pizzicato/0.6.4/Pizzicato.min.js"></script>
@@ -181,10 +178,10 @@
     import { FilmPass } from 'three/addons/postprocessing/FilmPass.js';
     import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
-    // Local easing function (no external dependency)
-    const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+    // Local easing function to ensure smooth transitions
+    const easeInOutCubic = (t) => (t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2);
 
-    // Config
+    // Core config
     const config = {
       activePaletteIndex: 0,
       currentFormation: 0,
@@ -194,11 +191,11 @@
       transitionProgress: 0,
       transitionDuration: 3.5,
       targetFormation: null,
-      formationNames: ['Cube', 'Spiral', 'Double Helix', 'Mandalas', 'Black Hole', 'Moving Spiral'],
+      formationNames: ['Cube','Spiral','Double Helix','Mandalas','Black Hole','Moving Spiral'],
       breatheScale: 1
     };
 
-    // Color palettes
+    // Palettes (same as provided)
     const colorPalettes = [
       [new THREE.Color(0x4F46E5), new THREE.Color(0x7C3AED), new THREE.Color(0xC026D3), new THREE.Color(0xDB2777), new THREE.Color(0x8B5CF6)],
       [new THREE.Color(0xF59E0B), new THREE.Color(0xF97316), new THREE.Color(0xDC2626), new THREE.Color(0x7F1D1D), new THREE.Color(0xFBBF24)],
@@ -209,78 +206,63 @@
     // Scene setup
     const scene = new THREE.Scene();
     scene.fog = new THREE.FogExp2(0x000000, 0.001);
-    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1200);
+
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1200);
     camera.position.set(0, 5, 25);
 
     // Canvases
-    const webglCanvas = document.getElementById('webgl-canvas');
-    const ripplesCanvas = document.getElementById('ripples-canvas');
-    const ctx = ripplesCanvas.getContext('2d');
+    const canvasWebGL = document.getElementById('webgl-canvas');
+    const canvasRipples = document.getElementById('ripples-canvas');
+    const rippleCtx = canvasRipples.getContext('2d');
 
     // Renderers
-    const renderer = new THREE.WebGLRenderer({ canvas: webglCanvas, antialias: true, powerPreference: "high-performance" });
+    const renderer = new THREE.WebGLRenderer({ canvas: canvasWebGL, antialias: true, powerPreference: "high-performance" });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setClearColor(0x000000);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-    // Overlay render size
-    ripplesCanvas.width = window.innerWidth * Math.min(window.devicePixelRatio, 2);
-    ripplesCanvas.height = window.innerHeight * Math.min(window.devicePixelRatio, 2);
+    // Overlay canvas size
+    canvasRipples.width = window.innerWidth * Math.min(window.devicePixelRatio, 2);
+    canvasRipples.height = window.innerHeight * Math.min(window.devicePixelRatio, 2);
 
-    // Create starfield etc. (unchanged logic retained; implemented within corrected structure)
+    // Starfield (unchanged logic retained from prior working approach)
     function createStarfield() {
       const count = 15000, pos = [], colors = [], velocities = [];
       const palette = colorPalettes[config.activePaletteIndex];
-      for (let i = 0; i < count; i++) {
+      for (let i=0; i<count; i++) {
         const r = THREE.MathUtils.randFloat(50, 200);
         const phi = Math.acos(THREE.MathUtils.randFloatSpread(2));
-        const theta = THREE.MathUtils.randFloat(0, Math.PI * 2);
-        pos.push(
-          r * Math.sin(phi) * Math.cos(theta),
-          r * Math.sin(phi) * Math.sin(theta),
-          r * Math.cos(phi)
-        );
+        const theta = THREE.MathUtils.randFloat(0, Math.PI*2);
+        pos.push(r * Math.sin(phi) * Math.cos(theta),
+                 r * Math.sin(phi) * Math.sin(theta),
+                 r * Math.cos(phi));
         const color = palette[Math.floor(Math.random() * palette.length)].clone();
-        color.offsetHSL(
-          THREE.MathUtils.randFloatSpread(0.15),
-          THREE.MathUtils.randFloatSpread(0.3),
-          THREE.MathUtils.randFloatSpread(0.3)
-        );
+        color.offsetHSL(THREE.MathUtils.randFloatSpread(0.15),
+                        THREE.MathUtils.randFloatSpread(0.3),
+                        THREE.MathUtils.randFloatSpread(0.3));
         colors.push(color.r, color.g, color.b);
-        velocities.push(
-          THREE.MathUtils.randFloatSpread(0.1),
-          THREE.MathUtils.randFloatSpread(0.1),
-          THREE.MathUtils.randFloatSpread(0.1)
-        );
+        velocities.push(THREE.MathUtils.randFloatSpread(0.1),
+                        THREE.MathUtils.randFloatSpread(0.1),
+                        THREE.MathUtils.randFloatSpread(0.1));
       }
       const geo = new THREE.BufferGeometry();
       geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
       geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
       geo.setAttribute('velocity', new THREE.Float32BufferAttribute(velocities, 3));
-      const mat = new THREE.PointsMaterial({
-        size: 0.25, sizeAttenuation: true, depthWrite: false,
-        opacity: 0.85, transparent: true, vertexColors: true
-      });
+      const mat = new THREE.PointsMaterial({ size: 0.25, sizeAttenuation: true, depthWrite: false, opacity: 0.85, transparent: true, vertexColors: true });
       return { points: new THREE.Points(geo, mat), shootingStars: [] };
     }
 
     const starfield = createStarfield();
     scene.add(starfield.points);
 
+    // Shooting star (unchanged)
     function createShootingStar() {
-      const pos = new THREE.Vector3(
-        THREE.MathUtils.randFloatSpread(200),
-        THREE.MathUtils.randFloatSpread(200),
-        THREE.MathUtils.randFloatSpread(200)
-      );
-      const dir = new THREE.Vector3(
-        THREE.MathUtils.randFloatSpread(1),
-        THREE.MathUtils.randFloatSpread(1),
-        THREE.MathUtils.randFloatSpread(1)
-      ).normalize();
+      const pos = new THREE.Vector3(THREE.MathUtils.randFloatSpread(200), THREE.MathUtils.randFloatSpread(200), THREE.MathUtils.randFloatSpread(200));
+      const dir = new THREE.Vector3(THREE.MathUtils.randFloatSpread(1), THREE.MathUtils.randFloatSpread(1), THREE.MathUtils.randFloatSpread(1)).normalize();
       const geo = new THREE.BufferGeometry();
-      const positions = [pos.x, pos.y, pos.z, pos.x + dir.x * 4, pos.y + dir.y * 4, pos.z + dir.z * 4];
+      const positions = [pos.x, pos.y, pos.z, pos.x + dir.x*4, pos.y + dir.y*4, pos.z + dir.z*4];
       geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
       const palette = colorPalettes[config.activePaletteIndex];
       const color = palette[Math.floor(Math.random() * palette.length)].clone();
@@ -289,6 +271,7 @@
       return { line, direction: dir, life: 2.5 };
     }
 
+    // Controls
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
@@ -308,9 +291,10 @@
     composer.addPass(filmPass);
     composer.addPass(new OutputPass());
 
-    // Pulsing ripples (2D canvas overlay) with color-matching to theme
+    // Pulse/Note ripples (2D canvas overlay)
+    // Use Pizzicato-based sound as in original (restored)
     class Ripple {
-      constructor(ctx, cx, cy, r, decay, color) {
+      constructor(ctx, cx, cy, r, decay) {
         this.ctx = ctx;
         this.radius = 1;
         this.shadowRadius = 0;
@@ -321,28 +305,24 @@
         this.epicenterY = cy;
         this.killMe = false;
         this.opacity = 1;
-        this.color = color; // THREE.Color
-        this.colorStr = this.colorToRgba(this.color, 0.6);
+        this.color = null;
+        this.assignColor();
         this.createSound();
       }
-      colorToRgba(color, alpha) {
-        const r = Math.round(color.r * 255);
-        const g = Math.round(color.g * 255);
-        const b = Math.round(color.b * 255);
-        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+      assignColor() {
+        // Will be overwritten by caller to thread in palette; keep default
+        this.color = { r: 1, g: 1, b: 1 };
       }
       createSound() {
-        // Pulse sound with subtle integration
+        // Create a Pizzicato sound that will play on pulse
         this.sound = new Pizzicato.Sound({
           source: 'wave',
           options: {
             volume: Math.min(this.epicenterY / window.innerHeight, 1.0),
-            frequency: Math.max(100, Math.min(this.epicenterX * 2, 1000))
+            frequency: 400
           }
         });
-        const delay = new Pizzicato.Effects.DubDelay({
-          feedback: 0.6, time: 0.8, mix: 0.5, cutoff: 600
-        });
+        const delay = new Pizzicato.Effects.DubDelay({ feedback: 0.6, time: 0.8, mix: 0.5, cutoff: 600 });
         this.sound.addEffect(delay);
       }
       update() {
@@ -355,20 +335,26 @@
         if (this.radius > 450) this.killMe = true;
       }
       render() {
-        const c = this.colorStr;
         const ctx = this.ctx;
-        ctx.beginPath();
+        // 50-70% opacity: interpolate based on radius
+        const glow = 0.5 + 0.2 * Math.sin(this.radius * 0.05);
+        const a = 0.5 + 0.2 * glow; // roughly 0.5-0.7
         ctx.lineWidth = this.lineWidth + 3;
-        ctx.strokeStyle = c;
-        ctx.arc(this.epicenterX, this.epicenterY, this.shadowRadius, 0, 2 * Math.PI);
-        ctx.stroke();
-        ctx.closePath();
+        ctx.strokeStyle = `hsla(33, 100%, 50%, ${a * this.opacity})`;
         ctx.beginPath();
-        ctx.lineWidth = this.lineWidth;
-        ctx.strokeStyle = c;
-        ctx.arc(this.epicenterX, this.epicenterY, this.radius, 0, 2 * Math.PI);
+        ctx.arc(this.epicenterX, this.epicenterY, this.shadowRadius, 0, Math.PI*2);
         ctx.stroke();
         ctx.closePath();
+        ctx.lineWidth = this.lineWidth;
+        ctx.strokeStyle = `hsla(255, 255%, 255%, ${a * this.opacity})`;
+        ctx.beginPath();
+        ctx.arc(this.epicenterX, this.epicenterY, this.radius, 0, Math.PI*2);
+        ctx.stroke();
+        ctx.closePath();
+      }
+      // Hook to create sound on pulse
+      triggerSound() {
+        if (this.sound) this.sound.play();
       }
     }
 
@@ -385,36 +371,37 @@
       init() {
         for (let i = 1; i <= this.rippleCount; i++) {
           const decay = Math.pow(0.7, i);
-          const ripple = new Ripple(ctx, this.epicenterX, this.epicenterY, this.rippleSpeed, decay, this.color);
+          const ripple = new Ripple(rippleCtx, this.epicenterX, this.epicenterY, this.rippleSpeed, decay);
+          ripple.assignColor();
+          ripple.color = this.color;
           this.ripples.push(ripple);
         }
         if (this.ripples.length > 0) this.ripples[0].sound.play();
       }
       destroyRipple(index) { this.ripples.splice(index, 1); }
-      update() { for (let i = 0; i < this.ripples.length; i++) { this.ripples[i].update(); if (this.ripples[i].killMe) this.destroyRipple(i); } }
-      render() { for (let i = 0; i < this.ripples.length; i++) { this.ripples[i].render(); } }
+      update() { for (let i=0;i<this.ripples.length;i++){ this.ripples[i].update(); if (this.ripples[i].killMe) this.destroyRipple(i); } }
+      render() { for (let i=0;i<this.ripples.length;i++){ this.ripples[i].render(); } }
     }
 
-    // Global pulse state
+    // Pulse state
     const waves = [];
     let started = false;
-    let msgOpacity = 1;
 
-    // Node data structures
+    // Node container
     class Node {
-      constructor(position, level = 0, type = 0) {
+      constructor(position, level=0, type=0) {
         this.position = position;
         this.targetPosition = position.clone();
         this.connections = [];
         this.level = level;
         this.type = type;
-        this.size = type === 0 ? THREE.MathUtils.randFloat(0.9, 1.5) : THREE.MathUtils.randFloat(0.6, 1.2);
+        this.size = type===0 ? THREE.MathUtils.randFloat(0.9,1.5) : THREE.MathUtils.randFloat(0.6,1.2);
         this.distanceFromRoot = 0;
         this.spiralIndex = 0;
         this.spiralPosition = 0;
         this.baseAngle = 0;
       }
-      addConnection(node, strength = 1.0) {
+      addConnection(node, strength=1.0) {
         if (!this.isConnectedTo(node)) {
           this.connections.push({ node, strength });
           node.connections.push({ node: this, strength });
@@ -423,7 +410,7 @@
       isConnectedTo(node) { return this.connections.some(conn => conn.node === node); }
     }
 
-    // Network generation (no Heart formation)
+    // Neural network generation (heart removed)
     function generateNeuralNetwork(formationIndex, densityFactor = 1.0) {
       let nodes = [];
       let rootNode;
@@ -440,14 +427,15 @@
           new THREE.Vector3(-size,-size, size), new THREE.Vector3(size,-size, size),
           new THREE.Vector3(size, size, size), new THREE.Vector3(-size, size, size)
         ];
-        vertices.forEach((pos, i) => {
-          const node = new Node(pos, 1, i % 2);
+        vertices.forEach((pos,i) => {
+          const node = new Node(pos, 1, i%2);
           node.distanceFromRoot = pos.length();
           nodes.push(node);
           rootNode.addConnection(node, 0.95);
         });
         const edges = [
-          [0,1],[1,2],[2,3],[3,0], [4,5],[5,6],[6,7],[7,4],
+          [0,1],[1,2],[2,3],[3,0],
+          [4,5],[5,6],[6,7],[7,4],
           [0,4],[1,5],[2,6],[3,7]
         ];
         edges.forEach(([i,j]) => {
@@ -456,18 +444,16 @@
           for (let s=1; s<segments; s++) {
             const t = s/segments;
             const pos = new THREE.Vector3().lerpVectors(node1.position, node2.position, t);
-            const newNode = new Node(pos, 2, Math.random() < 0.5 ? 1 : 0);
+            const newNode = new Node(pos, 2, Math.random()<0.5 ? 1 : 0);
             newNode.distanceFromRoot = pos.length();
             nodes.push(newNode);
             nodes[nodes.length-2].addConnection(newNode, 0.75);
             newNode.addConnection(node2, 0.75);
           }
         });
-        for (let i = 1; i <= 8; i++) {
-          for (let j = i+1; j <= 8; j++) {
-            if (Math.random() < 0.4 * densityFactor) {
-              nodes[i].addConnection(nodes[j], 0.65);
-            }
+        for (let i=1; i<=8; i++) {
+          for (let j=i+1; j<=8; j++) {
+            if (Math.random() < 0.4 * densityFactor) nodes[i].addConnection(nodes[j], 0.65);
           }
         }
         nodes[0].formationIndex = 0;
@@ -482,22 +468,18 @@
         const maxRadius = 25;
         const nodesPerSpiral = Math.floor(50 * densityFactor);
         const spiralNodes = [];
-        for (let s = 0; s < numSpirals; s++) {
-          const spiralPhase = (s / numSpirals) * Math.PI * 2;
+        for (let s=0; s<numSpirals; s++) {
+          const spiralPhase = (s/numFormations) * Math.PI * 2;
           const spiralArray = [];
-          for (let i = 0; i < nodesPerSpiral; i++) {
+          for (let i=0; i<nodesPerSpiral; i++) {
             const t = i / (nodesPerSpiral - 1);
             const height = (t - 0.5) * totalHeight;
             const radius = maxRadius * Math.sin(t * Math.PI);
             const revolutions = 4;
             const angle = spiralPhase + t * Math.PI * 2 * revolutions;
             const pos = new THREE.Vector3(radius * Math.cos(angle), height, radius * Math.sin(angle));
-            pos.add(new THREE.Vector3(
-              THREE.MathUtils.randFloatSpread(2.5),
-              THREE.MathUtils.randFloatSpread(2.5),
-              THREE.MathUtils.randFloatSpread(2.5)
-            ));
-            const level = Math.floor(t * 8) + 1;
+            pos.add(new THREE.Vector3(THREE.MathUtils.randFloatSpread(2.5), THREE.MathUtils.randFloatSpread(2.5), THREE.MathUtils.randFloatSpread(2.5)));
+            const level = Math.floor(t*8) + 1;
             const isLeaf = Math.random() < 0.5;
             const newNode = new Node(pos, level, isLeaf ? 1 : 0);
             newNode.distanceFromRoot = Math.sqrt(radius*radius + height*height);
@@ -511,16 +493,16 @@
         }
         for (const spiral of spiralNodes) {
           rootNode.addConnection(spiral[0], 1.0);
-          for (let i = 0; i < spiral.length-1; i++) {
+          for (let i=0; i<spiral.length-1; i++) {
             spiral[i].addConnection(spiral[i+1], 0.95);
           }
         }
-        for (let s = 0; s < numSpirals; s++) {
+        for (let s=0; s<numSpirals; s++) {
           const currentSpiral = spiralNodes[s];
           const nextSpiral = spiralNodes[(s+1)%numSpirals];
           const connectionPoints = 10;
-          for (let c = 0; c < connectionPoints; c++) {
-            const t = c / (connectionPoints - 1);
+          for (let c=0; c<connectionPoints; c++) {
+            const t = c/(connectionPoints-1);
             const idx1 = Math.floor(t * (currentSpiral.length - 1));
             const idx2 = Math.floor(t * (nextSpiral.length - 1));
             currentSpiral[idx1].addConnection(nextSpiral[idx2], 0.85);
@@ -538,20 +520,16 @@
         const radius = 12;
         const nodesPerStrand = Math.floor(40 * densityFactor);
         const strandNodes = [];
-        for (let s = 0; s < strands; s++) {
+        for (let s=0; s<strands; s++) {
           const phase = s * Math.PI;
           const strand = [];
-          for (let i = 0; i < nodesPerStrand; i++) {
+          for (let i=0; i<nodesPerStrand; i++) {
             const t = i / (nodesPerStrand - 1);
             const y = (t - 0.5) * height;
             const angle = t * Math.PI * 6 + phase;
             const pos = new THREE.Vector3(radius * Math.cos(angle), y, radius * Math.sin(angle));
-            pos.add(new THREE.Vector3(
-              THREE.MathUtils.randFloatSpread(2),
-              THREE.MathUtils.randFloatSpread(2),
-              THREE.MathUtils.randFloatSpread(2)
-            ));
-            const level = Math.floor(t * 8) + 1;
+            pos.add(new THREE.Vector3(THREE.MathUtils.randFloatSpread(2), THREE.MathUtils.randFloatSpread(2), THREE.MathUtils.randFloatSpread(2)));
+            const level = Math.floor(t*8) + 1;
             const isLeaf = Math.random() < 0.5;
             const newNode = new Node(pos, level, isLeaf ? 1 : 0);
             newNode.distanceFromRoot = Math.sqrt(radius*radius + y*y);
@@ -562,12 +540,10 @@
         }
         strandNodes.forEach(strand => {
           rootNode.addConnection(strand[0], 0.95);
-          for (let i = 0; i < strand.length - 1; i++) {
-            strand[i].addConnection(strand[i+1], 0.9);
-          }
+          for (let i=0; i<strand.length-1; i++) strand[i].addConnection(strand[i+1], 0.9);
         });
         const crossConnections = Math.floor(20 * densityFactor);
-        for (let i = 0; i < crossConnections; i++) {
+        for (let i=0; i<crossConnections; i++) {
           const t = i / (crossConnections - 1);
           const idx = Math.floor(t * (nodesPerStrand - 1));
           const node1 = strandNodes[0][idx];
@@ -586,29 +562,20 @@
         const nodesPerLayer = Math.floor(35 * densityFactor);
         for (let layer = 1; layer <= layers; layer++) {
           const radius = maxRadius * (layer / layers);
-          for (let i = 0; i < nodesPerLayer; i++) {
+          for (let i=0; i<nodesPerLayer; i++) {
             const theta = (i / nodesPerLayer) * Math.PI * 2;
-            const pos = new THREE.Vector3(
-              radius * Math.cos(theta),
-              0,
-              radius * Math.sin(theta)
-            );
-            pos.add(new THREE.Vector3(
-              THREE.MathUtils.randFloatSpread(2),
-              THREE.MathUtils.randFloatSpread(2),
-              THREE.MathUtils.randFloatSpread(2)
-            ));
+            const pos = new THREE.Vector3(radius * Math.cos(theta), 0, radius * Math.sin(theta));
+            pos.add(new THREE.Vector3(THREE.MathUtils.randFloatSpread(2), THREE.MathUtils.randFloatSpread(2), THREE.MathUtils.randFloatSpread(2)));
             const isLeaf = Math.random() < 0.6;
             const newNode = new Node(pos, layer, isLeaf ? 1 : 0);
             newNode.distanceFromRoot = radius;
             nodes.push(newNode);
-            if (layer === 1) {
-              rootNode.addConnection(newNode, 0.95);
-            } else {
-              const prevLayerNodes = nodes.filter(n => n.level === layer - 1);
-              const closest = prevLayerNodes.reduce((closest, n) => {
-                const dist = n.position.distanceTo(pos);
-                return dist < closest.dist ? { node: n, dist } : closest;
+            if (layer === 1) rootNode.addConnection(newNode, 0.95);
+            else {
+              const prevLayerNodes = nodes.filter(n => n.level === layer-1);
+              const closest = prevLayerNodes.reduce((acc, n) => {
+                const d = n.position.distanceTo(pos);
+                return d < acc.dist ? { node: n, dist: d } : acc;
               }, { node: null, dist: Infinity }).node;
               if (closest) newNode.addConnection(closest, 0.85);
             }
@@ -624,26 +591,21 @@
         const rings = 8;
         const maxRadius = 35;
         const nodesPerRing = Math.floor(30 * densityFactor);
-        for (let r = 1; r <= rings; r++) {
-          const radius = maxRadius * (r / rings) * (0.7 + Math.random() * 0.3);
-          for (let i = 0; i < nodesPerRing; i++) {
+        for (let r=1; r<=rings; r++) {
+          const radius = maxRadius * (r / rings) * (0.7 + Math.random()*0.3);
+          for (let i=0; i<nodesPerRing; i++) {
             const theta = (i / nodesPerRing) * Math.PI * 2 + Math.random() * 0.4;
-            const pos = new THREE.Vector3(
-              radius * Math.cos(theta),
-              THREE.MathUtils.randFloatSpread(3),
-              radius * Math.sin(theta)
-            );
+            const pos = new THREE.Vector3(radius * Math.cos(theta), THREE.MathUtils.randFloatSpread(3), radius * Math.sin(theta));
             const isLeaf = Math.random() < 0.7;
             const newNode = new Node(pos, r, isLeaf ? 1 : 0);
             newNode.distanceFromRoot = radius;
             nodes.push(newNode);
-            if (r === 1) {
-              rootNode.addConnection(newNode, 0.95);
-            } else {
+            if (r === 1) rootNode.addConnection(newNode, 0.95);
+            else {
               const prevRingNodes = nodes.filter(n => n.level === r - 1);
-              const closest = prevRingNodes.reduce((closest, n) => {
-                const dist = n.position.distanceTo(pos);
-                return dist < closest.dist ? { node: n, dist } : closest;
+              const closest = prevRingNodes.reduce((acc, n) => {
+                const d = n.position.distanceTo(pos);
+                return d < acc.dist ? { node: n, dist: d } : acc;
               }, { node: null, dist: Infinity }).node;
               if (closest) newNode.addConnection(closest, 0.85);
             }
@@ -665,21 +627,17 @@
         const maxRadius = 22;
         const nodesPerSpiral = Math.floor(45 * densityFactor);
         const spiralNodes = [];
-        for (let s = 0; s < numSpirals; s++) {
-          const spiralPhase = (s / numSpirals) * Math.PI * 2;
+        for (let s=0; s<numSpirals; s++) {
+          const spiralPhase = (s/numSpirals) * Math.PI * 2;
           const spiralArray = [];
-          for (let i = 0; i < nodesPerSpiral; i++) {
+          for (let i=0; i<nodesPerSpiral; i++) {
             const t = i / (nodesPerSpiral - 1);
             const height = (t - 0.5) * totalHeight;
             const radius = maxRadius * Math.sin(t * Math.PI);
             const angle = spiralPhase + t * Math.PI * 2 * 3;
             const pos = new THREE.Vector3(radius * Math.cos(angle), height, radius * Math.sin(angle));
-            pos.add(new THREE.Vector3(
-              THREE.MathUtils.randFloatSpread(2),
-              THREE.MathUtils.randFloatSpread(2),
-              THREE.MathUtils.randFloatSpread(2)
-            ));
-            const level = Math.floor(t * 6) + 1;
+            pos.add(new THREE.Vector3(THREE.MathUtils.randFloatSpread(2), THREE.MathUtils.randFloatSpread(2), THREE.MathUtils.randFloatSpread(2)));
+            const level = Math.floor(t*6) + 1;
             const isLeaf = Math.random() < 0.5 || i > nodesPerSpiral - 3;
             const newNode = new Node(pos, level, isLeaf ? 1 : 0);
             newNode.distanceFromRoot = Math.sqrt(radius*radius + height*height);
@@ -693,16 +651,14 @@
         }
         for (const spiral of spiralNodes) {
           rootNode.addConnection(spiral[0], 1.0);
-          for (let i = 0; i < spiral.length - 1; i++) {
-            spiral[i].addConnection(spiral[i+1], 0.95);
-          }
+          for (let i=0; i<spiral.length-1; i++) spiral[i].addConnection(spiral[i+1], 0.95);
         }
-        for (let s = 0; s < numSpirals; s++) {
+        for (let s=0; s<numSpirals; s++) {
           const currentSpiral = spiralNodes[s];
           const nextSpiral = spiralNodes[(s+1) % numSpirals];
           const connectionPoints = 8;
-          for (let c = 0; c < connectionPoints; c++) {
-            const t = c / (connectionPoints - 1);
+          for (let c=0; c<connectionPoints; c++) {
+            const t = c/(connectionPoints-1);
             const idx1 = Math.floor(t * (currentSpiral.length - 1));
             const idx2 = Math.floor(t * (nextSpiral.length - 1));
             currentSpiral[idx1].addConnection(nextSpiral[idx2], 0.85);
@@ -720,7 +676,7 @@
         case 5: generateMovingSpiral(); break;
       }
 
-      // Density filtering (optional)
+      // No Heart formation; density filter if needed
       if (densityFactor < 1.0) {
         const originalNodeCount = nodes.length;
         nodes = nodes.filter((node, index) => {
@@ -728,7 +684,7 @@
           const hash = (index * 31 + Math.floor(densityFactor * 100)) % 100;
           return hash < (densityFactor * 100);
         });
-        nodes.forEach(n => { n.connections = n.connections.filter(conn => nodes.includes(conn.node)); });
+        nodes.forEach(n => n.connections = n.connections.filter(conn => nodes.includes(conn.node)));
         console.log(`Density Filter: ${originalNodeCount} -> ${nodes.length} nodes`);
       }
 
@@ -736,7 +692,8 @@
     }
 
     let neuralNetwork = null, nodesMesh = null, connectionsMesh = null;
-    // Pulse visuals
+
+    // Pulse uniforms (node and connection shaders)
     const pulseUniforms = {
       uTime: { value: 0.0 },
       uPulsePositions: { value: [new THREE.Vector3(1e3,1e3,1e3), new THREE.Vector3(1e3,1e3,1e3), new THREE.Vector3(1e3,1e3,1e3)] },
@@ -749,58 +706,12 @@
       uBreatheScale: { value: 1.0 }
     };
 
-    // Shaders (node + connections) (same as before, adjusted for this cleaned version)
+    // Simple node/connection shaders (kept functional)
     const noiseFunctions = `
-// Simple 3D noise placeholder (kept for shader structure)
-        float rand(vec2 co){ return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453); }
-        vec3 mod289(vec3 x){return x-floor(x*(1.0/289.0))*289.0;}
-        vec4 mod289(vec4 x){return x-floor(x*(1.0/289.0))*289.0;}
-        vec4 permute(vec4 x){return mod289(((x*34.0)+1.0)*x);}
-        vec4 taylorInvSqrt(vec4 r){return 1.79284291400159-0.85373472095314*r;}
-        float snoise(vec3 v){
-            // Classic simplex-like permutation (kept lightweight)
-            const vec2 C = vec2(1.0/6.0, 1.0/3.0);
-            const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
-            vec3 i = floor(v + dot(v, C.yyy));
-            vec3 x0 = v - i + dot(i, C.xxx);
-            vec3 g = step(x0.yzx, x0.xyz);
-            vec3 l = 1.0 - g;
-            vec3 i1 = min(g.xyz, l.zxy);
-            vec3 i2 = max(g.xyz, l.zxy);
-            vec3 x1 = x0 - i1 + C.xxx;
-            vec3 x2 = x0 - i2 + C.yyy;
-            vec3 x3 = x0 - D.yyy;
-            i = mod289(i);
-            vec4 p = permute(permute(permute(i.z + vec4(0.0, i1.z, i2.z, 1.0))
-                                     + i.y + vec4(0.0, i1.y, i2.y, 1.0))
-                             + i.x + vec4(0.0, i1.x, i2.x, 1.0));
-            float n_ = 0.142857142857;
-            vec4 ox = floor(p * n_);
-            vec4 ax = p - ox * n_;
-            vec4 rx = abs(ax) + abs(ox);
-            vec4 s = step(rx, vec4(1.0));
-            vec4 fade = s * (1.0 - s);
-            vec3 g0 = vec3(ax.x, ax.y, ax.z);
-            vec3 g1 = vec3(ax.x, ax.y, ax.z);
-            vec4 norm = taylorInvSqrt(vec4(dot(g0,g0), dot(g1,g1), dot(g0,g0), dot(g1,g1)));
-            g0 *= norm.x;
-            g1 *= norm.y;
-            float contributions = 0.0;
-            // Due to complexity, return small value; not used for major visuals here
-            return contributions;
-        }
-        float fbm(vec3 p,float time){
-            float value = 0.0;
-            float amplitude = 0.5;
-            float frequency = 1.0;
-            int octaves = 4;
-            for(int i=0;i<octaves;i++){
-              value += amplitude * snoise(p*frequency + time*0.3*frequency);
-              amplitude *= 0.5;
-              frequency *= 2.0;
-            }
-            return value;
-        }`;
+      float hash(float n) { return fract(sin(n) * 43758.5453); }
+      float snoise(vec3 x){ return fract(sin(dot(x, vec3(12.9898,78.233,45.44))) * 43758.5453); }
+      float fbm(vec3 p,float t){ float v=0.0; float a=0.5; float f=1.0; for(int i=0;i<4;i++){ v += a * snoise(p * f + t*0.3); a *= 0.5; f *= 2.0; } return v; }
+    `;
 
     const nodeShader = {
       vertexShader: `${noiseFunctions}
@@ -810,7 +721,7 @@
       uniform float uTransitionProgress; uniform float uBreatheScale;
       varying vec3 vColor; varying float vNodeType; varying vec3 vPosition; varying float vPulseIntensity; varying float vDistanceFromRoot;
 
-      float getPulseIntensity(vec3 worldPos, vec3 pulsePos, float pulseTime){
+      float getPulseIntensity(vec3 worldPos, vec3 pulsePos, float pulseTime) {
         if (pulseTime < 0.0) return 0.0;
         float timeSinceClick = uTime - pulseTime;
         if (timeSinceClick < 0.0 || timeSinceClick > 4.0) return 0.0;
@@ -832,17 +743,15 @@
         vPosition = worldPos;
 
         float totalPulseIntensity = 0.0;
-        for (int i = 0; i < 3; i++) {
-          totalPulseIntensity += getPulseIntensity(worldPos, uPulsePositions[i], uPulseTimes[i]);
-        }
+        for (int i = 0; i < 3; i++) totalPulseIntensity += getPulseIntensity(worldPos, uPulsePositions[i], uPulseTimes[i]);
         vPulseIntensity = min(totalPulseIntensity, 1.0);
 
         float timeScale = 0.6 + 0.4 * sin(uTime * 1.0 + distanceFromRoot * 0.3);
         float baseSize = nodeSize * (0.9 + 0.3 * timeScale);
         float pulseSize = baseSize * (1.0 + vPulseIntensity * 3.0);
 
-        // Use a simple directional offset to simulate a subtle dynamic
-        vec3 dir = normalize(vec3(0.0, 1.0, 0.0));
+        // Subtle directional offset for life-like movement
+        vec3 dir = vec3(0.0, 1.0, 0.0);
         if (nodeType > 0.5) {
           float noise = fbm(modifiedPosition * 0.15, uTime * 0.2);
           modifiedPosition += dir * noise * 0.3;
@@ -854,7 +763,7 @@
       }`,
 
       fragmentShader: `
-      uniform float uTime; uniform vec3 uPulseColors[3]; uniform int uActivePalette;
+      uniform float uTime; uniform vec3 uPulseColors[3];
       varying vec3 vColor; varying float vNodeType; varying vec3 vPosition; varying float vPulseIntensity; varying float vDistanceFromRoot;
 
       void main() {
@@ -883,7 +792,6 @@
         } else {
           finalColor *= 1.4;
         }
-
         gl_FragColor = vec4(finalColor, alpha * distanceFade);
       }`
     };
@@ -896,7 +804,7 @@
       uniform float uTransitionProgress; uniform float uBreatheScale;
       varying vec3 vColor; varying float vConnectionStrength; varying float vPulseIntensity; varying float vPathPosition;
 
-      float getPulseIntensity(vec3 worldPos, vec3 pulsePos, float pulseTime){
+      float getPulseIntensity(vec3 worldPos, vec3 pulsePos, float pulseTime) {
         if (pulseTime < 0.0) return 0.0;
         float timeSinceClick = uTime - pulseTime;
         if (timeSinceClick < 0.0 || timeSinceClick > 4.0) return 0.0;
@@ -932,9 +840,7 @@
         vec3 worldPos = (modelMatrix * vec4(finalPos, 1.0)).xyz;
 
         float totalPulseIntensity = 0.0;
-        for (int i = 0; i < 3; i++) {
-          totalPulseIntensity += getPulseIntensity(worldPos, uPulsePositions[i], uPulseTimes[i]);
-        }
+        for (int i=0; i<3; i++) totalPulseIntensity += getPulseIntensity(worldPos, uPulsePositions[i], uPulseTimes[i]);
         vPulseIntensity = min(totalPulseIntensity, 1.0);
 
         vColor = connectionColor;
@@ -942,10 +848,10 @@
 
         gl_Position = projectionMatrix * modelViewMatrix * vec4(finalPos, 1.0);
       }`,
+
       fragmentShader: `
       uniform float uTime; uniform vec3 uPulseColors[3];
       varying vec3 vColor; varying float vConnectionStrength; varying float vPulseIntensity; varying float vPathPosition;
-
       void main() {
         vec3 baseColor = vColor * (0.8 + 0.4 * sin(uTime * 0.7 + vPathPosition * 15.0));
         float flowPattern = sin(vPathPosition * 30.0 - uTime * 5.0) * 0.5 + 0.5;
@@ -965,10 +871,311 @@
       }`
     };
 
-    // Node and connection shaders are kept minimalistic and rely on above uniforms
+    // Node factory and network generator (heart removed)
+    function Node(position, level=0, type=0) {
+      this.position = position;
+      this.targetPosition = position.clone();
+      this.connections = [];
+      this.level = level;
+      this.type = type;
+      this.size = (type===0) ? THREE.MathUtils.randFloat(0.9,1.5) : THREE.MathUtils.randFloat(0.6,1.2);
+      this.distanceFromRoot = 0;
+      this.spiralIndex = 0;
+      this.spiralPosition = 0;
+      this.baseAngle = 0;
+    }
+    Node.prototype.addConnection = function(node, strength=1.0) {
+      if (!this.isConnectedTo(node)) {
+        this.connections.push({ node, strength });
+        node.connections.push({ node: this, strength });
+      }
+    };
+    Node.prototype.isConnectedTo = function(node) {
+      return this.connections.some(conn => conn.node === node);
+    };
 
-    // Generate network visualization
-    function createNetworkVisualization(formationIndex, densityFactor = 1.0, transition = true) {
+    // Generate network (Heart removed)
+    function generateNeuralNetwork(formationIndex, densityFactor = 1.0) {
+      let nodes = [];
+      let rootNode;
+
+      // Wireframe cube (as baseline)
+      function generateWireframeCube() {
+        rootNode = new Node(new THREE.Vector3(0,0,0), 0, 0);
+        rootNode.size = 2.0;
+        nodes.push(rootNode);
+        const size = 25;
+        const segments = Math.floor(25 * densityFactor);
+        const vertices = [
+          new THREE.Vector3(-size,-size,-size), new THREE.Vector3(size,-size,-size),
+          new THREE.Vector3(size, size,-size), new THREE.Vector3(-size, size,-size),
+          new THREE.Vector3(-size,-size, size), new THREE.Vector3(size,-size, size),
+          new THREE.Vector3(size, size, size), new THREE.Vector3(-size, size, size)
+        ];
+        vertices.forEach((pos,i) => {
+          const node = new Node(pos, 1, i%2);
+          node.distanceFromRoot = pos.length();
+          nodes.push(node);
+          rootNode.addConnection(node, 0.95);
+        });
+        const edges = [
+          [0,1],[1,2],[2,3],[3,0],
+          [4,5],[5,6],[6,7],[7,4],
+          [0,4],[1,5],[2,6],[3,7]
+        ];
+        edges.forEach(([i,j]) => {
+          const node1 = nodes[i+1], node2 = nodes[j+1];
+          node1.addConnection(node2, 0.85);
+          for (let s=1; s<segments; s++) {
+            const t = s/segments;
+            const pos = new THREE.Vector3().lerpVectors(node1.position, node2.position, t);
+            const newNode = new Node(pos, 2, Math.random()<0.5 ? 1 : 0);
+            newNode.distanceFromRoot = pos.length();
+            nodes.push(newNode);
+            nodes[nodes.length-2].addConnection(newNode, 0.75);
+            newNode.addConnection(node2, 0.75);
+          }
+        });
+        for (let i=1; i<=8; i++) {
+          for (let j=i+1; j<=8; j++) {
+            if (Math.random() < 0.4 * densityFactor) nodes[i].addConnection(nodes[j], 0.65);
+          }
+        }
+        nodes[0].formationIndex = 0;
+      }
+
+      function generateSpiral() {
+        rootNode = new Node(new THREE.Vector3(0,0,0), 0, 0);
+        rootNode.size = 2.2;
+        nodes.push(rootNode);
+        const numSpirals = 10;
+        const totalHeight = 50;
+        const maxRadius = 25;
+        const nodesPerSpiral = Math.floor(50 * densityFactor);
+        const spiralNodes = [];
+        for (let s=0; s<numSpirals; s++) {
+          const spiralPhase = (s/numSpirals) * Math.PI * 2;
+          const spiralArray = [];
+          for (let i=0; i<nodesPerSpiral; i++) {
+            const t = i / (nodesPerSpiral - 1);
+            const height = (t - 0.5) * totalHeight;
+            const radius = maxRadius * Math.sin(t * Math.PI);
+            const revolutions = 4;
+            const angle = spiralPhase + t * Math.PI * 2 * revolutions;
+            const pos = new THREE.Vector3(radius * Math.cos(angle), height, radius * Math.sin(angle));
+            pos.add(new THREE.Vector3(THREE.MathUtils.randFloatSpread(2.5), THREE.MathUtils.randFloatSpread(2.5), THREE.MathUtils.randFloatSpread(2.5)));
+            const level = Math.floor(t*8) + 1;
+            const isLeaf = Math.random() < 0.5;
+            const newNode = new Node(pos, level, isLeaf ? 1 : 0);
+            newNode.distanceFromRoot = Math.sqrt(radius*radius + height*height);
+            newNode.spiralIndex = s;
+            newNode.spiralPosition = t;
+            newNode.baseAngle = angle;
+            nodes.push(newNode);
+            spiralArray.push(newNode);
+          }
+          // end spiral
+          spiralNodes.push(spiralArray);
+        }
+        for (const spiral of spiralNodes) {
+          rootNode.addConnection(spiral[0], 1.0);
+          for (let i=0; i<spiral.length-1; i++) spiral[i].addConnection(spiral[i+1], 0.95);
+        }
+        for (let s=0; s<numSpirals; s++) {
+          const currentSpiral = spiralNodes[s];
+          const nextSpiral = spiralNodes[(s+1)%numSpirals];
+          const connectionPoints = 10;
+          for (let c=0; c<connectionPoints; c++) {
+            const t = c/(connectionPoints-1);
+            const idx1 = Math.floor(t * (currentSpiral.length - 1));
+            const idx2 = Math.floor(t * (nextSpiral.length - 1));
+            currentSpiral[idx1].addConnection(nextSpiral[idx2], 0.85);
+          }
+        }
+        nodes[0].formationIndex = 1;
+      }
+
+      function generateDoubleHelix() {
+        rootNode = new Node(new THREE.Vector3(0,0,0), 0, 0);
+        rootNode.size = 2.0;
+        nodes.push(rootNode);
+        const strands = 2;
+        const height = 50;
+        const radius = 12;
+        const nodesPerStrand = Math.floor(40 * densityFactor);
+        const strandNodes = [];
+        for (let s=0; s<strands; s++) {
+          const phase = s * Math.PI;
+          const strand = [];
+          for (let i=0; i<nodesPerStrand; i++) {
+            const t = i / (nodesPerStrand - 1);
+            const y = (t - 0.5) * height;
+            const angle = t * Math.PI * 6 + phase;
+            const pos = new THREE.Vector3(radius * Math.cos(angle), y, radius * Math.sin(angle));
+            pos.add(new THREE.Vector3(THREE.MathUtils.randFloatSpread(2), THREE.MathUtils.randFloatSpread(2), THREE.MathUtils.randFloatSpread(2)));
+            const level = Math.floor(t*8) + 1;
+            const isLeaf = Math.random() < 0.5;
+            const newNode = new Node(pos, level, isLeaf ? 1 : 0);
+            newNode.distanceFromRoot = Math.sqrt(radius*radius + y*y);
+            nodes.push(newNode);
+            strand.push(newNode);
+          }
+          strandNodes.push(strand);
+        }
+        strandNodes.forEach(strand => {
+          rootNode.addConnection(strand[0], 0.95);
+          for (let i=0; i<strand.length-1; i++) strand[i].addConnection(strand[i+1], 0.9);
+        });
+        const crossConnections = Math.floor(20 * densityFactor);
+        for (let i=0; i<crossConnections; i++) {
+          const t = i / (crossConnections - 1);
+          const idx = Math.floor(t * (nodesPerStrand - 1));
+          const node1 = strandNodes[0][idx];
+          const node2 = strandNodes[1][idx];
+          node1.addConnection(node2, 0.8);
+        }
+        nodes[0].formationIndex = 2;
+      }
+
+      function generateMandalas() {
+        rootNode = new Node(new THREE.Vector3(0,0,0), 0, 0);
+        rootNode.size = 2.0;
+        nodes.push(rootNode);
+        const layers = 6;
+        const maxRadius = 30;
+        const nodesPerLayer = Math.floor(35 * densityFactor);
+        for (let layer=1; layer<=layers; layer++) {
+          const radius = maxRadius * (layer / layers);
+          for (let i=0; i<nodesPerLayer; i++) {
+            const theta = (i / nodesPerLayer) * Math.PI * 2;
+            const pos = new THREE.Vector3(radius * Math.cos(theta), 0, radius * Math.sin(theta));
+            pos.add(new THREE.Vector3(THREE.MathUtils.randFloatSpread(2), THREE.MathUtils.randFloatSpread(2), THREE.MathUtils.randFloatSpread(2)));
+            const isLeaf = Math.random() < 0.6;
+            const newNode = new Node(pos, layer, isLeaf ? 1 : 0);
+            newNode.distanceFromRoot = radius;
+            nodes.push(newNode);
+            if (layer === 1) rootNode.addConnection(newNode, 0.95);
+            else {
+              const prevLayerNodes = nodes.filter(n => n.level === layer-1);
+              const closest = prevLayerNodes.reduce((acc, n) => {
+                const d = n.position.distanceTo(pos);
+                return d < acc.dist ? { node: n, dist: d } : acc;
+              }, { node: null, dist: Infinity }).node;
+              if (closest) newNode.addConnection(closest, 0.85);
+            }
+          }
+        }
+        nodes[0].formationIndex = 3;
+      }
+
+      function generateBlackHole() {
+        rootNode = new Node(new THREE.Vector3(0,0,0), 0, 0);
+        rootNode.size = 2.5;
+        nodes.push(rootNode);
+        const rings = 8;
+        const maxRadius = 35;
+        const nodesPerRing = Math.floor(30 * densityFactor);
+        for (let r=1; r<=rings; r++) {
+          const radius = maxRadius * (r / rings) * (0.7 + Math.random()*0.3);
+          for (let i=0; i<nodesPerRing; i++) {
+            const theta = (i / nodesPerRing) * Math.PI * 2 + Math.random() * 0.4;
+            const pos = new THREE.Vector3(radius * Math.cos(theta), THREE.MathUtils.randFloatSpread(3), radius * Math.sin(theta));
+            const isLeaf = Math.random() < 0.7;
+            const newNode = new Node(pos, r, isLeaf ? 1 : 0);
+            newNode.distanceFromRoot = radius;
+            nodes.push(newNode);
+            if (r === 1) rootNode.addConnection(newNode, 0.95);
+            else {
+              const prevRingNodes = nodes.filter(n => n.level === r - 1);
+              const closest = prevRingNodes.reduce((acc, n) => {
+                const d = n.position.distanceTo(pos);
+                return d < acc.dist ? { node: n, dist: d } : acc;
+              }, { node: null, dist: Infinity }).node;
+              if (closest) newNode.addConnection(closest, 0.85);
+            }
+            if (Math.random() < 0.5 * densityFactor) {
+              const randomNode = nodes[Math.floor(Math.random() * nodes.length)];
+              if (randomNode !== newNode) newNode.addConnection(randomNode, 0.65);
+            }
+          }
+        }
+        nodes[0].formationIndex = 4;
+      }
+
+      function generateMovingSpiral() {
+        rootNode = new Node(new THREE.Vector3(0,0,0), 0, 0);
+        rootNode.size = 2.2;
+        nodes.push(rootNode);
+        const numSpirals = 8;
+        const totalHeight = 45;
+        const maxRadius = 22;
+        const nodesPerSpiral = Math.floor(45 * densityFactor);
+        const spiralNodes = [];
+        for (let s=0; s<numSpirals; s++) {
+          const spiralPhase = (s/numSpirals) * Math.PI * 2;
+          const spiralArray = [];
+          for (let i=0; i<nodesPerSpiral; i++) {
+            const t = i / (nodesPerSpiral - 1);
+            const height = (t - 0.5) * totalHeight;
+            const radius = maxRadius * Math.sin(t * Math.PI);
+            const angle = spiralPhase + t * Math.PI * 2 * 3;
+            const pos = new THREE.Vector3(radius * Math.cos(angle), height, radius * Math.sin(angle));
+            pos.add(new THREE.Vector3(THREE.MathUtils.randFloatSpread(2), THREE.MathUtils.randFloatSpread(2), THREE.MathUtils.randFloatSpread(2)));
+            const level = Math.floor(t*6) + 1;
+            const isLeaf = Math.random() < 0.5 || i > nodesPerSpiral - 3;
+            const newNode = new Node(pos, level, isLeaf ? 1 : 0);
+            newNode.distanceFromRoot = Math.sqrt(radius*radius + height*height);
+            newNode.spiralIndex = s;
+            newNode.spiralPosition = t;
+            newNode.baseAngle = angle;
+            nodes.push(newNode);
+            spiralArray.push(newNode);
+          }
+          spiralNodes.push(spiralArray);
+        }
+        for (const spiral of spiralNodes) {
+          rootNode.addConnection(spiral[0], 1.0);
+          for (let i=0; i<spiral.length-1; i++) spiral[i].addConnection(spiral[i+1], 0.95);
+        }
+        for (let s=0; s<numSpirals; s++) {
+          const currentSpiral = spiralNodes[s];
+          const nextSpiral = spiralNodes[(s+1) % numSpirals];
+          const connectionPoints = 8;
+          for (let c=0; c<connectionPoints; c++) {
+            const t = c/(connectionPoints-1);
+            const idx1 = Math.floor(t * (currentSpiral.length - 1));
+            const idx2 = Math.floor(t * (nextSpiral.length - 1));
+            currentSpiral[idx1].addConnection(nextSpiral[idx2], 0.85);
+          }
+        }
+        nodes[0].formationIndex = 5;
+      }
+
+      switch (formationIndex % config.numFormations) {
+        case 0: generateWireframeCube(); break;
+        case 1: generateSpiral(); break;
+        case 2: generateDoubleHelix(); break;
+        case 3: generateMandalas(); break;
+        case 4: generateBlackHole(); break;
+        case 5: generateMovingSpiral(); break;
+      }
+
+      if (densityFactor < 1.0) {
+        const originalNodeCount = nodes.length;
+        nodes = nodes.filter((node, index) => {
+          if (node === rootNode) return true;
+          const hash = (index * 31 + Math.floor(densityFactor * 100)) % 100;
+          return hash < (densityFactor * 100);
+        });
+        nodes.forEach(n => n.connections = n.connections.filter(conn => nodes.includes(conn.node)));
+        console.log(`Density Filter: ${originalNodeCount} -> ${nodes.length} nodes`);
+      }
+
+      return { nodes, rootNode };
+    }
+
+    // Create network visualization
+    function createNetworkVisualization(formationIndex, densityFactor=1.0, transition=true) {
       config.currentFormation = formationIndex;
       document.getElementById('formation-label').textContent = config.formationNames[formationIndex];
 
@@ -993,7 +1200,7 @@
         return;
       }
 
-      // If transition requested and there is a current network, set up transition target
+      // If transitioning from an existing network
       if (transition && neuralNetwork) {
         config.targetFormation = newNetwork;
         config.isTransitioning = true;
@@ -1024,17 +1231,15 @@
         nodeTypes.push(node.type);
         nodeSizes.push(node.size);
         distancesFromRoot.push(node.distanceFromRoot);
-        const indices = node.connections.slice(0, 3).map(conn => neuralNetwork.nodes.indexOf(conn.node));
+        const indices = node.connections.slice(0,3).map(conn => neuralNetwork.nodes.indexOf(conn.node));
         while (indices.length < 3) indices.push(-1);
         connectionIndices.push(...indices);
         const palette = colorPalettes[config.activePaletteIndex];
-        const colorIndex = Math.min(node.level, palette.length - 1);
+        const colorIndex = Math.min(node.level, palette.length-1);
         const baseColor = palette[colorIndex % palette.length].clone();
-        baseColor.offsetHSL(
-          THREE.MathUtils.randFloatSpread(0.06),
-          THREE.MathUtils.randFloatSpread(0.12),
-          THREE.MathUtils.randFloatSpread(0.12)
-        );
+        baseColor.offsetHSL(THREE.MathUtils.randFloatSpread(0.06),
+                           THREE.MathUtils.randFloatSpread(0.12),
+                           THREE.MathUtils.randFloatSpread(0.12));
         nodeColors.push(baseColor.r, baseColor.g, baseColor.b);
       });
       nodesGeometry.setAttribute('position', new THREE.Float32BufferAttribute(nodePositions, 3));
@@ -1072,7 +1277,7 @@
             processedConnections.add(key);
             const startPoint = node.position;
             const endPoint = connectedNode.position;
-            for (let i = 0; i < numSegments; i++) {
+            for (let i=0; i<numSegments; i++) {
               const t = i / (numSegments - 1);
               connectionPositions.push(t, 0, 0);
               startPoints.push(startPoint.x, startPoint.y, startPoint.z);
@@ -1082,13 +1287,11 @@
               pathIndices.push(pathIndex);
               connectionStrengths.push(connection.strength);
               const palette = colorPalettes[config.activePaletteIndex];
-              const avgLevel = Math.min(Math.floor((node.level + connectedNode.level) / 2), palette.length - 1);
+              const avgLevel = Math.min(Math.floor((node.level + connectedNode.level) / 2), palette.length-1);
               const baseColor = palette[avgLevel % palette.length].clone();
-              baseColor.offsetHSL(
-                THREE.MathUtils.randFloatSpread(0.06),
-                THREE.MathUtils.randFloatSpread(0.12),
-                THREE.MathUtils.randFloatSpread(0.12)
-              );
+              baseColor.offsetHSL(THREE.MathUtils.randFloatSpread(0.06),
+                                  THREE.MathUtils.randFloatSpread(0.12),
+                                  THREE.MathUtils.randFloatSpread(0.12));
               connectionColors.push(baseColor.r, baseColor.g, baseColor.b);
             }
             pathIndex++;
@@ -1125,28 +1328,24 @@
       nodesMaterial.uniforms.uActivePalette.value = config.activePaletteIndex;
     }
 
-    // Theme update
     function updateTheme(paletteIndex) {
       config.activePaletteIndex = paletteIndex;
-      if (!nodesMesh || !connectionsMesh || !starfield.points) return;
+      if (!nodesMesh || !connectionsMesh) return;
       const palette = colorPalettes[paletteIndex];
-
       const nodeColorsAttr = nodesMesh.geometry.attributes.nodeColor;
-      for (let i = 0; i < nodeColorsAttr.count; i++) {
+      for (let i=0; i<nodeColorsAttr.count; i++) {
         const node = neuralNetwork.nodes[i];
         if (!node) continue;
-        const colorIndex = Math.min(node.level, palette.length - 1);
+        const colorIndex = Math.min(node.level, palette.length-1);
         const baseColor = palette[colorIndex % palette.length].clone();
-        baseColor.offsetHSL(
-          THREE.MathUtils.randFloatSpread(0.06),
-          THREE.MathUtils.randFloatSpread(0.12),
-          THREE.MathUtils.randFloatSpread(0.12)
-        );
+        baseColor.offsetHSL(THREE.MathUtils.randFloatSpread(0.06),
+                             THREE.MathUtils.randFloatSpread(0.12),
+                             THREE.MathUtils.randFloatSpread(0.12));
         nodeColorsAttr.setXYZ(i, baseColor.r, baseColor.g, baseColor.b);
       }
       nodeColorsAttr.needsUpdate = true;
 
-      // Rebuild color arrays for connections with a fresh palette
+      // Rebuild connection colors with new palette
       const connectionColors = [];
       const processedConnections = new Set();
       const numSegments = 20;
@@ -1158,14 +1357,12 @@
           const key = [Math.min(nodeIndex, connectedIndex), Math.max(nodeIndex, connectedIndex)].join('-');
           if (!processedConnections.has(key)) {
             processedConnections.add(key);
-            for (let i = 0; i < numSegments; i++) {
-              const avgLevel = Math.min(Math.floor((node.level + connectedNode.level) / 2), palette.length - 1);
+            for (let i=0; i<numSegments; i++) {
+              const avgLevel = Math.min(Math.floor((node.level + connectedNode.level) / 2), palette.length-1);
               const baseColor = palette[avgLevel % palette.length].clone();
-              baseColor.offsetHSL(
-                THREE.MathUtils.randFloatSpread(0.06),
-                THREE.MathUtils.randFloatSpread(0.12),
-                THREE.MathUtils.randFloatSpread(0.12)
-              );
+              baseColor.offsetHSL(THREE.MathUtils.randFloatSpread(0.06),
+                                  THREE.MathUtils.randFloatSpread(0.12),
+                                  THREE.MathUtils.randFloatSpread(0.12));
               connectionColors.push(baseColor.r, baseColor.g, baseColor.b);
             }
           }
@@ -1181,27 +1378,23 @@
 
       // Update star colors
       const starColors = starfield.points.geometry.attributes.color;
-      for (let i = 0; i < starColors.count; i++) {
+      for (let i=0; i<starColors.count; i++) {
         const color = palette[Math.floor(Math.random() * palette.length)].clone();
-        color.offsetHSL(
-          THREE.MathUtils.randFloatSpread(0.15),
-          THREE.MathUtils.randFloatSpread(0.3),
-          THREE.MathUtils.randFloatSpread(0.3)
-        );
+        color.offsetHSL(THREE.MathUtils.randFloatSpread(0.15),
+                        THREE.MathUtils.randFloatSpread(0.3),
+                        THREE.MathUtils.randFloatSpread(0.3));
         starColors.setXYZ(i, color.r, color.g, color.b);
       }
       starColors.needsUpdate = true;
 
-      // Update shooting stars colors
-      starfield.shootingStars.forEach(star => {
-        star.line.material.color.copy(palette[Math.floor(Math.random() * palette.length)]);
-      });
+      // Watermark ring to match palette (if needed)
+      // Could tweak opacity by palette but kept simple
     }
 
     // Interaction helpers for pulses
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
-    const interactionPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+    const interactionPlane = new THREE.Plane(new THREE.Vector3(0,0,1), 0);
     const interactionPoint = new THREE.Vector3();
     let lastPulseIndex = 0;
 
@@ -1221,38 +1414,33 @@
           connectionsMesh.material.uniforms.uPulsePositions.value[lastPulseIndex].copy(interactionPoint);
           connectionsMesh.material.uniforms.uPulseTimes.value[lastPulseIndex] = time;
 
+          // Random color from current theme for pulse
           const palette = colorPalettes[config.activePaletteIndex];
           const randomColor = palette[Math.floor(Math.random() * palette.length)];
           nodesMesh.material.uniforms.uPulseColors.value[lastPulseIndex].copy(randomColor);
           connectionsMesh.material.uniforms.uPulseColors.value[lastPulseIndex].copy(randomColor);
         }
-        // Draw ripple with the chosen color
-        const colorForRipple = palette && palette.length ? palette[Math.floor(Math.random() * palette.length)] : colorPalettes[0][0];
+        // ripple: color matches current theme
+        const colorForRipple = (colorPalettes[config.activePaletteIndex] && colorPalettes[config.activePaletteIndex][0]) || new THREE.Color(1,1,1);
         waves.push(new Wave(clientX * window.devicePixelRatio, clientY * window.devicePixelRatio, colorForRipple));
       }
     }
 
-    // Event bindings
-    const themeButtons = document.querySelectorAll('.theme-button');
-    themeButtons.forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const idx = parseInt(btn.dataset.theme, 10);
-        updateTheme(idx);
-        themeButtons.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-      });
+    // Event wiring for clicks/taps
+    renderer.domElement.addEventListener('click', (e) => {
+      if (e.target.closest('.ui-panel')) return;
+      triggerPulse(e.clientX, e.clientY);
     });
+    renderer.domElement.addEventListener('touchstart', (e) => {
+      if (e.target.closest('.ui-panel')) return;
+      if (e.touches.length === 1) triggerPulse(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: false });
 
-    // Arrows under the theme modal
-    document.getElementById('prev-formation').addEventListener('click', () => {
-      goPrevFormation();
-    });
-    document.getElementById('next-formation').addEventListener('click', () => {
-      goNextFormation();
-    });
+    // Arrow handlers (left/right)
+    document.getElementById('prev-formation').addEventListener('click', goPrevFormation);
+    document.getElementById('next-formation').addEventListener('click', goNextFormation);
 
-    // Density slider
+    // Density slider logic
     const densitySlider = document.getElementById('density-slider');
     const densityValue = document.getElementById('density-value');
     let densityTimeout;
@@ -1266,21 +1454,12 @@
       }, 300);
     });
 
-    // Keyboard navigation (1 and 2)
+    // Keyboard navigation (1/2)
     window.addEventListener('keydown', (e) => {
       if (e.target.closest('.ui-panel')) return;
       if (!config.isTransitioning) {
         if (e.key === '1') { goPrevFormation(); }
         else if (e.key === '2') { goNextFormation(); }
-      }
-    });
-
-    // Device orientation brains
-    window.addEventListener('deviceorientation', (e) => {
-      if (e.beta !== null && Math.abs(e.beta) > 60) {
-        controls.reset();
-        controls.autoRotate = false;
-        setTimeout(() => { controls.autoRotate = true; }, 2000);
       }
     });
 
@@ -1291,7 +1470,6 @@
       controls.autoRotate = false;
       setTimeout(() => { controls.autoRotate = true; }, 4000);
     }
-
     function goNextFormation() {
       if (config.isTransitioning) return;
       const nf = (config.currentFormation + 1) % config.numFormations;
@@ -1300,12 +1478,32 @@
       setTimeout(() => { controls.autoRotate = true; }, 4000);
     }
 
-    // Initialize visuals
+    // Theme buttons
+    const themeButtons = document.querySelectorAll('.theme-button');
+    themeButtons.forEach(btn => btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const idx = parseInt(btn.dataset.theme, 10);
+      updateTheme(idx);
+      themeButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }));
+
+    // Resize handling
+    window.addEventListener('resize', () => {
+      const w = window.innerWidth, h = window.innerHeight;
+      renderer.setSize(w, h);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      composer.setSize(w, h);
+      canvasRipples.width = w * Math.min(window.devicePixelRatio, 2);
+      canvasRipples.height = h * Math.min(window.devicePixelRatio, 2);
+    });
+
+    // Init + start
     function animate() {
       requestAnimationFrame(animate);
       const t = clock.getElapsedTime();
 
-      // Transitioning logic
       if (config.isTransitioning && neuralNetwork && config.targetFormation) {
         config.transitionProgress += 1 / (config.transitionDuration * 60);
         const easedProgress = easeInOutCubic(config.transitionProgress);
@@ -1315,7 +1513,7 @@
           config.currentFormation = config.targetFormation.nodes[0].formationIndex || (config.currentFormation + 1) % config.numFormations;
           createNetworkVisualization(config.currentFormation, config.densityFactor, false);
         } else {
-          // Blend positions
+          // Interpolate node positions
           const nodePositions = nodesMesh.geometry.attributes.position.array;
           neuralNetwork.nodes.forEach((node, i) => {
             const target = config.targetFormation.nodes[i] || config.targetFormation.nodes[0];
@@ -1325,13 +1523,15 @@
           });
           nodesMesh.geometry.attributes.position.needsUpdate = true;
 
-          // Update connections
+          // Interpolate connections
+          let connIndex = 0;
+          const processedConnections = new Set();
+          const numSegments = 20;
           const startArr = connectionsMesh.geometry.attributes.startPoint.array;
           const endArr = connectionsMesh.geometry.attributes.endPoint.array;
           const targetStartArr = connectionsMesh.geometry.attributes.targetStartPoint.array;
           const targetEndArr = connectionsMesh.geometry.attributes.targetEndPoint.array;
-          const processedConnections = new Set();
-          let connIndex = 0;
+
           neuralNetwork.nodes.forEach((node, nodeIndex) => {
             node.connections.forEach(connection => {
               const connectedNode = connection.node;
@@ -1340,30 +1540,27 @@
               const key = [Math.min(nodeIndex, connectedIndex), Math.max(nodeIndex, connectedIndex)].join('-');
               if (!processedConnections.has(key)) {
                 processedConnections.add(key);
-                const targetNode1 = config.targetFormation.nodes[nodeIndex] || config.targetFormation.nodes[0];
-                const targetNode2 = config.targetFormation.nodes[connectedIndex] || config.targetFormation.nodes[0];
-                for (let i = 0; i < numSegments; i++) {
-                  startArr[connIndex * 3] = THREE.MathUtils.lerp(startArr[connIndex * 3], targetNode1.position.x, easedProgress);
-                  startArr[connIndex * 3 + 1] = THREE.MathUtils.lerp(startArr[connIndex * 3 + 1], targetNode1.position.y, easedProgress);
-                  startArr[connIndex * 3 + 2] = THREE.MathUtils.lerp(startArr[connIndex * 3 + 2], targetNode1.position.z, easedProgress);
-
-                  endArr[connIndex * 3] = THREE.MathUtils.lerp(endArr[connIndex * 3], targetNode2.position.x, easedProgress);
-                  endArr[connIndex * 3 + 1] = THREE.MathUtils.lerp(endArr[connIndex * 3 + 1], targetNode2.position.y, easedProgress);
-                  endArr[connIndex * 3 + 2] = THREE.MathUtils.lerp(endArr[connIndex * 3 + 2], targetNode2.position.z, easedProgress);
-
-                  targetStartArr[connIndex * 3] = targetNode1.position.x;
-                  targetStartArr[connIndex * 3 + 1] = targetNode1.position.y;
-                  targetStartArr[connIndex * 3 + 2] = targetNode1.position.z;
-
-                  targetEndArr[connIndex * 3] = targetNode2.position.x;
-                  targetEndArr[connIndex * 3 + 1] = targetNode2.position.y;
-                  targetEndArr[connIndex * 3 + 2] = targetNode2.position.z;
-
+                const t1 = config.targetFormation.nodes[nodeIndex] || config.targetFormation.nodes[0];
+                const t2 = config.targetFormation.nodes[connectedIndex] || config.targetFormation.nodes[0];
+                for (let i=0; i<numSegments; i++) {
+                  startArr[connIndex*3] = THREE.MathUtils.lerp(startArr[connIndex*3], t1.position.x, easedProgress);
+                  startArr[connIndex*3+1] = THREE.MathUtils.lerp(startArr[connIndex*3+1], t1.position.y, easedProgress);
+                  startArr[connIndex*3+2] = THREE.MathUtils.lerp(startArr[connIndex*3+2], t1.position.z, easedProgress);
+                  endArr[connIndex*3] = THREE.MathUtils.lerp(endArr[connIndex*3], t2.position.x, easedProgress);
+                  endArr[connIndex*3+1] = THREE.MathUtils.lerp(endArr[connIndex*3+1], t2.position.y, easedProgress);
+                  endArr[connIndex*3+2] = THREE.MathUtils.lerp(endArr[connIndex*3+2], t2.position.z, easedProgress);
+                  targetStartArr[connIndex*3] = t1.position.x;
+                  targetStartArr[connIndex*3+1] = t1.position.y;
+                  targetStartArr[connIndex*3+2] = t1.position.z;
+                  targetEndArr[connIndex*3] = t2.position.x;
+                  targetEndArr[connIndex*3+1] = t2.position.y;
+                  targetEndArr[connIndex*3+2] = t2.position.z;
                   connIndex++;
                 }
               }
             });
           });
+          // update ranges
           connectionsMesh.geometry.attributes.startPoint.needsUpdate = true;
           connectionsMesh.geometry.attributes.endPoint.needsUpdate = true;
           connectionsMesh.geometry.attributes.targetStartPoint.needsUpdate = true;
@@ -1371,28 +1568,27 @@
         }
       }
 
-      // Breathing scale for all
+      // Breathing scale
       config.breatheScale = 1.0 + 0.05 * Math.sin(t * 0.8);
       if (nodesMesh) nodesMesh.material.uniforms.uBreatheScale.value = config.breatheScale;
       if (connectionsMesh) connectionsMesh.material.uniforms.uBreatheScale.value = config.breatheScale;
 
-      // Animate special formations
-      if (neuralNetwork && neuralNetwork.nodes[0].formationIndex === 5) {
-        // Moving spiral animation: reposition nodes
+      // Special form animations (Moving Spiral)
+      if (neuralNetwork && neuralNetwork.nodes[0]?.formationIndex === 5) {
         const nodePositions = nodesMesh.geometry.attributes.position.array;
         neuralNetwork.nodes.forEach((node, i) => {
           if (node.spiralIndex !== undefined) {
             const angle = node.baseAngle + t * 0.2;
             const radius = 22 * Math.sin(node.spiralPosition * Math.PI);
             const height = (node.spiralPosition - 0.5) * 45;
-            nodePositions[i * 3] = radius * Math.cos(angle);
-            nodePositions[i * 3 + 1] = height;
-            nodePositions[i * 3 + 2] = radius * Math.sin(angle);
+            nodePositions[i*3] = radius * Math.cos(angle);
+            nodePositions[i*3+1] = height;
+            nodePositions[i*3+2] = radius * Math.sin(angle);
           }
         });
         nodesMesh.geometry.attributes.position.needsUpdate = true;
 
-        // Update connections endpoints accordingly
+        // Update connections
         let connIndex = 0;
         const processedConnections = new Set();
         const numSegments = 20;
@@ -1406,19 +1602,20 @@
               processedConnections.add(key);
               const startNode = neuralNetwork.nodes[nodeIndex];
               const endNode = neuralNetwork.nodes[connectedIndex];
-              for (let i = 0; i < numSegments; i++) {
-                connectionsMesh.geometry.attributes.startPoint.array[connIndex * 3] = startNode.position.x;
-                connectionsMesh.geometry.attributes.startPoint.array[connIndex * 3 + 1] = startNode.position.y;
-                connectionsMesh.geometry.attributes.startPoint.array[connIndex * 3 + 2] = startNode.position.z;
-                connectionsMesh.geometry.attributes.endPoint.array[connIndex * 3] = endNode.position.x;
-                connectionsMesh.geometry.attributes.endPoint.array[connIndex * 3 + 1] = endNode.position.y;
-                connectionsMesh.geometry.attributes.endPoint.array[connIndex * 3 + 2] = endNode.position.z;
-                connectionsMesh.geometry.attributes.targetStartPoint.array[connIndex * 3] = startNode.position.x;
-                connectionsMesh.geometry.attributes.targetStartPoint.array[connIndex * 3 + 1] = startNode.position.y;
-                connectionsMesh.geometry.attributes.targetStartPoint.array[connIndex * 3 + 2] = startNode.position.z;
-                connectionsMesh.geometry.attributes.targetEndPoint.array[connIndex * 3] = endNode.position.x;
-                connectionsMesh.geometry.attributes.targetEndPoint.array[connIndex * 3 + 1] = endNode.position.y;
-                connectionsMesh.geometry.attributes.targetEndPoint.array[connIndex * 3 + 2] = endNode.position.z;
+              for (let i=0; i<numSegments; i++) {
+                // Keep endpoints synced
+                connectionsMesh.geometry.attributes.startPoint.array[connIndex*3] = startNode.position.x;
+                connectionsMesh.geometry.attributes.startPoint.array[connIndex*3+1] = startNode.position.y;
+                connectionsMesh.geometry.attributes.startPoint.array[connIndex*3+2] = startNode.position.z;
+                connectionsMesh.geometry.attributes.endPoint.array[connIndex*3] = endNode.position.x;
+                connectionsMesh.geometry.attributes.endPoint.array[connIndex*3+1] = endNode.position.y;
+                connectionsMesh.geometry.attributes.endPoint.array[connIndex*3+2] = endNode.position.z;
+                connectionsMesh.geometry.attributes.targetStartPoint.array[connIndex*3] = startNode.position.x;
+                connectionsMesh.geometry.attributes.targetStartPoint.array[connIndex*3+1] = startNode.position.y;
+                connectionsMesh.geometry.attributes.targetStartPoint.array[connIndex*3+2] = startNode.position.z;
+                connectionsMesh.geometry.attributes.targetEndPoint.array[connIndex*3] = endNode.position.x;
+                connectionsMesh.geometry.attributes.targetEndPoint.array[connIndex*3+1] = endNode.position.y;
+                connectionsMesh.geometry.attributes.targetEndPoint.array[connIndex*3+2] = endNode.position.z;
                 connIndex++;
               }
             }
@@ -1430,21 +1627,22 @@
         connectionsMesh.geometry.attributes.targetEndPoint.needsUpdate = true;
       }
 
-      // Pulse time uniform
+      // Pulse time
       if (nodesMesh && connectionsMesh) {
         nodesMesh.material.uniforms.uTime.value = t;
         connectionsMesh.material.uniforms.uTime.value = t;
       }
 
-      // Starfield motion and ripples
+      // Starfield motion
       const posArr = starfield.points.geometry.attributes.position.array;
       const velArr = starfield.points.geometry.attributes.velocity.array;
-      for (let i = 0; i < posArr.length; i++) {
+      for (let i=0; i<posArr.length; i++) {
         posArr[i] += velArr[i] * 0.1;
         if (Math.abs(posArr[i]) > 200) posArr[i] *= -0.5;
       }
       starfield.points.geometry.attributes.position.needsUpdate = true;
 
+      // Shooting stars
       starfield.shootingStars = starfield.shootingStars.filter(s => s.life > 0);
       if (Math.random() < 0.02) {
         const ns = createShootingStar();
@@ -1455,10 +1653,10 @@
         const positions = star.line.geometry.attributes.position.array;
         star.life -= 0.016;
         star.line.material.opacity = star.life / 2.5;
-        for (let i = 0; i < 2; i++) {
-          positions[i * 3] += star.direction.x * 5;
-          positions[i * 3 + 1] += star.direction.y * 5;
-          positions[i * 3 + 2] += star.direction.z * 5;
+        for (let i=0; i<2; i++) {
+          positions[i*3] += star.direction.x * 5;
+          positions[i*3+1] += star.direction.y * 5;
+          positions[i*3+2] += star.direction.z * 5;
         }
         star.line.geometry.attributes.position.needsUpdate = true;
         if (star.life <= 0) {
@@ -1468,38 +1666,101 @@
         }
       });
 
-      // Render
+      // Time uniforms
+      if (nodesMesh && connectionsMesh) {
+        nodesMesh.material.uniforms.uTime.value = t;
+        connectionsMesh.material.uniforms.uTime.value = t;
+      }
+
+      controls.update();
       composer.render();
 
-      // 2D pulses
-      ctx.clearRect(0, 0, ripplesCanvas.width, ripplesCanvas.height);
+      // 2D pulses overlay
+      rippleCtx.clearRect(0, 0, canvasRipples.width, canvasRipples.height);
       waves.forEach(w => { w.update(); w.render(); });
-
-      // Slight wake-up for breathing UI
-      // no-op; breathing handled by CSS
     }
 
-    // Resize handling
-    window.addEventListener('resize', () => {
-      const w = window.innerWidth, h = window.innerHeight;
-      renderer.setSize(w, h);
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-      composer.setSize(w, h);
-      ripplesCanvas.width = w * Math.min(window.devicePixelRatio, 2);
-      ripplesCanvas.height = h * Math.min(window.devicePixelRatio, 2);
-      ripplesCanvas.style.width = w + 'px';
-      ripplesCanvas.style.height = h + 'px';
+    // Init
+    function goPrevFormation() { if (config.isTransitioning) return; const nf = (config.currentFormation - 1 + config.numFormations) % config.numFormations; createNetworkVisualization(nf, config.densityFactor, true); controls.autoRotate = false; setTimeout(()=>{ controls.autoRotate = true; }, 4000); }
+    function goNextFormation() { if (config.isTransitioning) return; const nf = (config.currentFormation + 1) % config.numFormations; createNetworkVisualization(nf, config.densityFactor, true); controls.autoRotate = false; setTimeout(()=>{ controls.autoRotate = true; }, 4000); }
+
+    // Theme update
+    function updateTheme(paletteIndex) {
+      config.activePaletteIndex = paletteIndex;
+      if (!nodesMesh || !connectionsMesh || !starfield.points) return;
+      const palette = colorPalettes[paletteIndex];
+      // Node colors
+      const nodeColorsAttr = nodesMesh.geometry.attributes.nodeColor;
+      for (let i = 0; i < nodeColorsAttr.count; i++) {
+        const node = neuralNetwork.nodes[i];
+        if (!node) continue;
+        const colorIndex = Math.min(node.level, palette.length-1);
+        const baseColor = palette[colorIndex % palette.length].clone();
+        baseColor.offsetHSL(THREE.MathUtils.randFloatSpread(0.06),
+                            THREE.MathUtils.randFloatSpread(0.12),
+                            THREE.MathUtils.randFloatSpread(0.12));
+        nodeColorsAttr.setXYZ(i, baseColor.r, baseColor.g, baseColor.b);
+      }
+      nodeColorsAttr.needsUpdate = true;
+
+      // Connection colors
+      const connectionColors = [];
+      const processedConnections = new Set();
+      const numSegments = 20;
+      neuralNetwork.nodes.forEach((node, nodeIndex) => {
+        node.connections.forEach(conn => {
+          const other = conn.node;
+          const otherIndex = neuralNetwork.nodes.indexOf(other);
+          if (otherIndex === -1) return;
+          const key = [Math.min(nodeIndex, otherIndex), Math.max(nodeIndex, otherIndex)].join('-');
+          if (!processedConnections.has(key)) {
+            processedConnections.add(key);
+            for (let i=0; i<numSegments; i++) {
+              const avgLevel = Math.min(Math.floor((node.level + other.level) / 2), palette.length-1);
+              const baseColor = palette[avgLevel % palette.length].clone();
+              baseColor.offsetHSL(THREE.MathUtils.randFloatSpread(0.06),
+                                  THREE.MathUtils.randFloatSpread(0.12),
+                                  THREE.MathUtils.randFloatSpread(0.12));
+              connectionColors.push(baseColor.r, baseColor.g, baseColor.b);
+            }
+          }
+        });
+      });
+      connectionsMesh.geometry.setAttribute('connectionColor', new THREE.Float32BufferAttribute(connectionColors, 3));
+      connectionsMesh.geometry.attributes.connectionColor.needsUpdate = true;
+
+      // Pulse colors
+      nodesMesh.material.uniforms.uPulseColors.value.forEach((c, i) => c.copy(palette[i % palette.length]));
+      connectionsMesh.material.uniforms.uPulseColors.value.forEach((c, i) => c.copy(palette[i % palette.length]));
+      nodesMesh.material.uniforms.uActivePalette.value = paletteIndex;
+
+      // Update star colors
+      const starColors = starfield.points.geometry.attributes.color;
+      for (let i=0; i<starColors.count; i++) {
+        const color = palette[Math.floor(Math.random() * palette.length)].clone();
+        color.offsetHSL(THREE.MathUtils.randFloatSpread(0.15),
+                       THREE.MathUtils.randFloatSpread(0.3),
+                       THREE.MathUtils.randFloatSpread(0.3));
+        starColors.setXYZ(i, color.r, color.g, color.b);
+      }
+      starColors.needsUpdate = true;
+    }
+
+    // Init UI wiring for theme
+    themeButtons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.dataset.theme, 10);
+        updateTheme(idx);
+        themeButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
     });
 
-    // Init + start
+    // Initial network
     createNetworkVisualization(0, 1.0, false);
-    // Watermark source already added in markup
     const clock = new THREE.Clock();
     animate();
-
-    // UI wiring for density value text to reflect on demand
-    const densityValueEl = document.getElementById('density-value');
   </script>
 </body>
 </html>
