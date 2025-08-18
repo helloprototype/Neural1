@@ -22,12 +22,12 @@
             display: block;
             width: 100%;
             height: 100%;
-            cursor: pointer;
             position: absolute;
             top: 0;
             left: 0;
-            z-index: 1;
         }
+        #webgl-canvas { z-index: 1; cursor: pointer; }
+        #ripples-canvas { z-index: 2; pointer-events: none; }
         .ui-panel {
             position: absolute;
             backdrop-filter: blur(10px);
@@ -207,14 +207,15 @@
         <p>Pitch</p>
         <p class="vert">Volume</p>
     </div>
-    <canvas id="neural-network-canvas"></canvas>
+    <canvas id="webgl-canvas"></canvas>
+    <canvas id="ripples-canvas"></canvas>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pizzicato/0.6.4/Pizzicato.min.js"></script>
     <script type="importmap">
     {
       "imports": {
         "three": "https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js",
-        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/",
-        "easing-utils": "https://esm.sh/easing-utils"
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/"
       }
     }
     </script>
@@ -226,7 +227,11 @@
         import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
         import { FilmPass } from 'three/addons/postprocessing/FilmPass.js';
         import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-        import * as easingUtils from 'easing-utils';
+
+        // Local easing replacement (avoid external dependency)
+        const easingUtils = {
+            easeInOutCubic: (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
+        };
 
         const config = {
             activePaletteIndex: 0,
@@ -238,7 +243,7 @@
             transitionDuration: 3.5,
             targetFormation: null,
             formationNames: ['Cube', 'Spiral', 'Double Helix', 'Mandalas', 'Black Hole', 'Heart', 'Moving Spiral'],
-            breatheScale: 1,
+            breatheScale: 1
         };
 
         const colorPalettes = [
@@ -254,9 +259,11 @@
         const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1200);
         camera.position.set(0, 5, 25);
 
-        const canvasElement = document.getElementById('neural-network-canvas');
-        const ctx = canvasElement.getContext('2d');
-        const renderer = new THREE.WebGLRenderer({ canvas: canvasElement, antialias: true, powerPreference: "high-performance" });
+        const webglCanvas = document.getElementById('webgl-canvas');
+        const overlayCanvas = document.getElementById('ripples-canvas');
+        const ctx = overlayCanvas.getContext('2d');
+
+        const renderer = new THREE.WebGLRenderer({ canvas: webglCanvas, antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         renderer.setClearColor(0x000000);
@@ -269,8 +276,8 @@
             hHeight: window.innerHeight * 0.5,
             dpi: window.devicePixelRatio
         };
-        canvasElement.width = render.width * render.dpi;
-        canvasElement.height = render.height * render.dpi;
+        overlayCanvas.width = render.width * render.dpi;
+        overlayCanvas.height = render.height * render.dpi;
 
         function createStarfield() {
             const count = 15000, pos = [], colors = [], velocities = [];
@@ -391,6 +398,7 @@
 
         class Ripple {
             constructor(ctx, cx, cy, r, decay) {
+                this.ctx = ctx;
                 this.radius = 1;
                 this.shadowRadius = 0;
                 this.rSpeed = r;
@@ -436,6 +444,7 @@
                 }
             }
             render() {
+                const ctx = this.ctx;
                 ctx.beginPath();
                 ctx.lineWidth = this.lineWidth + 3;
                 ctx.strokeStyle = `hsla(33, 97%, 49%, ${this.opacity * 0.8})`;
@@ -536,9 +545,11 @@
                 float baseSize = nodeSize * (0.9 + 0.3 * timeScale);
                 float pulseSize = baseSize * (1.0 + vPulseIntensity * 3.0);
 
+                // Use radial direction instead of 'normal' (Points don't have normals)
                 if (nodeType > 0.5) {
+                    vec3 dir = normalize(modifiedPosition + vec3(0.0001));
                     float noise = fbm(modifiedPosition * 0.15, uTime * 0.2);
-                    modifiedPosition += normal * noise * 0.3;
+                    modifiedPosition += dir * noise * 0.3;
                 }
 
                 vec4 mvPosition = modelViewMatrix * vec4(modifiedPosition, 1.0);
@@ -749,10 +760,8 @@
                     const spiralArray = [];
                     for (let i = 0; i < nodesPerSpiral; i++) {
                         const t = i / (nodesPerSpiral - 1);
-                        const heightCurve = 1 - Math.pow(2 * t - 1, 2);
                         const height = (t - 0.5) * totalHeight;
-                        const radiusCurve = Math.sin(t * Math.PI);
-                        const radius = maxRadius * radiusCurve;
+                        const radius = maxRadius * Math.sin(t * Math.PI);
                         const revolutions = 4;
                         const angle = spiralPhase + t * Math.PI * 2 * revolutions;
                         const pos = new THREE.Vector3(radius * Math.cos(angle), height, radius * Math.sin(angle));
@@ -877,11 +886,12 @@
                             if (closest) newNode.addConnection(closest, 0.85);
                         }
                         const nextIdx = (i + 1) % nodesPerLayer;
-                        const nextNode = nodes.find(n => n.level === layer && n.position.distanceTo(new THREE.Vector3(
+                        const nextPos = new THREE.Vector3(
                             radius * Math.cos(((nextIdx / nodesPerLayer) * Math.PI * 2)),
                             0,
                             radius * Math.sin(((nextIdx / nodesPerLayer) * Math.PI * 2))
-                        )) < 4);
+                        );
+                        const nextNode = nodes.find(n => n.level === layer && n.position.distanceTo(nextPos) < 4);
                         if (nextNode) newNode.addConnection(nextNode, 0.75);
                     }
                 }
@@ -941,7 +951,7 @@
                     for (let i = 0; i < nodesPerSide; i++) {
                         const t = i / (nodesPerSide - 1);
                         const theta = t * Math.PI * 0.5 + Math.PI * 0.75;
-                        const x = xSign * 16 * scale * Math.sin(theta) ** 3;
+                        const x = xSign * 16 * scale * Math.sin(theta) * Math.sin(theta) * Math.sin(theta);
                         const y = scale * (13 * Math.cos(theta) - 5 * Math.cos(2 * theta) - 2 * Math.cos(3 * theta) - Math.cos(4 * theta));
                         const z = THREE.MathUtils.randFloatSpread(4);
                         const pos = new THREE.Vector3(x, y, z);
@@ -953,6 +963,7 @@
                         const isLeaf = Math.random() < 0.6;
                         const newNode = new Node(pos, Math.floor(t * 6) + 1, isLeaf ? 1 : 0);
                         newNode.distanceFromRoot = Math.sqrt(x * x + y * y);
+                        newNode.spiralPosition = t; // reuse for animation
                         nodes.push(newNode);
                         side.push(newNode);
                     }
@@ -1064,8 +1075,9 @@
         let neuralNetwork = null, nodesMesh = null, connectionsMesh = null;
 
         function createNetworkVisualization(formationIndex, densityFactor = 1.0, transition = true) {
-            console.log(`Creating formation ${formationIndex}, density ${densityFactor}, transition: ${transition}`);
+            config.currentFormation = formationIndex;
             document.getElementById('formation-label').textContent = config.formationNames[formationIndex];
+
             if (!transition) {
                 if (nodesMesh) {
                     scene.remove(nodesMesh);
@@ -1080,15 +1092,19 @@
                     connectionsMesh = null;
                 }
             }
+
             const newNetwork = generateNeuralNetwork(formationIndex, densityFactor);
             if (!newNetwork || newNetwork.nodes.length === 0) {
                 console.error("Network generation failed or resulted in zero nodes.");
                 return;
             }
+
             if (transition && neuralNetwork) {
                 config.targetFormation = newNetwork;
                 config.isTransitioning = true;
                 config.transitionProgress = 0;
+
+                // Map new nodes onto old positions to transition
                 newNetwork.nodes.forEach((newNode, i) => {
                     const oldNode = neuralNetwork.nodes[i] || neuralNetwork.nodes[0];
                     newNode.position.copy(oldNode.position);
@@ -1102,10 +1118,13 @@
                 });
                 return;
             }
+
             neuralNetwork = newNetwork;
+
+            // Nodes
             const nodesGeometry = new THREE.BufferGeometry();
             const nodePositions = [], targetPositions = [], nodeTypes = [], nodeSizes = [], nodeColors = [], connectionIndices = [], distancesFromRoot = [];
-            neuralNetwork.nodes.forEach((node, index) => {
+            neuralNetwork.nodes.forEach((node) => {
                 nodePositions.push(node.position.x, node.position.y, node.position.z);
                 targetPositions.push(node.position.x, node.position.y, node.position.z);
                 nodeTypes.push(node.type);
@@ -1141,10 +1160,14 @@
             });
             nodesMesh = new THREE.Points(nodesGeometry, nodesMaterial);
             scene.add(nodesMesh);
+
+            // Connections
             const connectionsGeometry = new THREE.BufferGeometry();
             const connectionColors = [], connectionStrengths = [], connectionPositions = [], startPoints = [], endPoints = [], targetStartPoints = [], targetEndPoints = [], pathIndices = [];
             const processedConnections = new Set();
             let pathIndex = 0;
+            const numSegments = 20;
+
             neuralNetwork.nodes.forEach((node, nodeIndex) => {
                 node.connections.forEach(connection => {
                     const connectedNode = connection.node;
@@ -1155,7 +1178,6 @@
                         processedConnections.add(key);
                         const startPoint = node.position;
                         const endPoint = connectedNode.position;
-                        const numSegments = 20;
                         for (let i = 0; i < numSegments; i++) {
                             const t = i / (numSegments - 1);
                             connectionPositions.push(t, 0, 0);
@@ -1197,6 +1219,7 @@
             });
             connectionsMesh = new THREE.LineSegments(connectionsGeometry, connectionsMaterial);
             scene.add(connectionsMesh);
+
             const palette = colorPalettes[config.activePaletteIndex];
             connectionsMaterial.uniforms.uPulseColors.value[0].copy(palette[0]);
             connectionsMaterial.uniforms.uPulseColors.value[1].copy(palette[1]);
@@ -1210,7 +1233,10 @@
         function updateTheme(paletteIndex) {
             config.activePaletteIndex = paletteIndex;
             if (!nodesMesh || !connectionsMesh || !starfield.points) return;
+
             const palette = colorPalettes[paletteIndex];
+
+            // Update node colors
             const nodeColorsAttr = nodesMesh.geometry.attributes.nodeColor;
             for (let i = 0; i < nodeColorsAttr.count; i++) {
                 const node = neuralNetwork.nodes[i];
@@ -1225,8 +1251,11 @@
                 nodeColorsAttr.setXYZ(i, baseColor.r, baseColor.g, baseColor.b);
             }
             nodeColorsAttr.needsUpdate = true;
+
+            // Update connection colors
             const connectionColors = [];
             const processedConnections = new Set();
+            const numSegments = 20;
             neuralNetwork.nodes.forEach((node, nodeIndex) => {
                 node.connections.forEach(connection => {
                     const connectedNode = connection.node;
@@ -1235,7 +1264,6 @@
                     const key = [Math.min(nodeIndex, connectedIndex), Math.max(nodeIndex, connectedIndex)].join('-');
                     if (!processedConnections.has(key)) {
                         processedConnections.add(key);
-                        const numSegments = 20;
                         for (let i = 0; i < numSegments; i++) {
                             const avgLevel = Math.min(Math.floor((node.level + connectedNode.level) / 2), palette.length - 1);
                             const baseColor = palette[avgLevel % palette.length].clone();
@@ -1251,9 +1279,13 @@
             });
             connectionsMesh.geometry.setAttribute('connectionColor', new THREE.Float32BufferAttribute(connectionColors, 3));
             connectionsMesh.geometry.attributes.connectionColor.needsUpdate = true;
+
+            // Update pulse colors
             nodesMesh.material.uniforms.uPulseColors.value.forEach((c, i) => c.copy(palette[i % palette.length]));
             connectionsMesh.material.uniforms.uPulseColors.value.forEach((c, i) => c.copy(palette[i % palette.length]));
             nodesMesh.material.uniforms.uActivePalette.value = paletteIndex;
+
+            // Update star colors
             const starColors = starfield.points.geometry.attributes.color;
             for (let i = 0; i < starColors.count; i++) {
                 const color = palette[Math.floor(Math.random() * palette.length)].clone();
@@ -1265,190 +1297,15 @@
                 starColors.setXYZ(i, color.r, color.g, color.b);
             }
             starColors.needsUpdate = true;
+
+            // Shooting stars color
             starfield.shootingStars.forEach(star => {
                 star.line.material.color.copy(palette[Math.floor(Math.random() * palette.length)]);
             });
         }
 
-        
-        function triggerPulse(clientX, clientY) {
-            started = true;
-            pointer.x = (clientX / window.innerWidth) * 2 - 1;
-            pointer.y = -(clientY / window.innerHeight) * 2 + 1;
-            raycaster.setFromCamera(pointer, camera);
-            interactionPlane.normal.copy(camera.position).normalize();
-            interactionPlane.constant = -interactionPlane.normal.dot(camera.position) + camera.position.length() * 0.5;
-            if (raycaster.ray.intersectPlane(interactionPlane, interactionPoint)) {
-                const time = clock.getElapsedTime();
-                if (nodesMesh && connectionsMesh) {
-                    lastPulseIndex = (lastPulseIndex + 1) % 3;
-                    nodesMesh.material.uniforms.uPulsePositions.value[lastPulseIndex].copy(interactionPoint);
-                    nodesMesh.material.uniforms.uPulseTimes.value[lastPulseIndex] = time;
-                    connectionsMesh.material.uniforms.uPulsePositions.value[lastPulseIndex].copy(interactionPoint);
-                    connectionsMesh.material.uniforms.uPulseTimes.value[lastPulseIndex] = time;
-                    const palette = colorPalettes[config.activePaletteIndex];
-                    const randomColor = palette[Math.floor(Math.random() * palette.length)];
-                    nodesMesh.material.uniforms.uPulseColors.value[lastPulseIndex].copy(randomColor);
-                    connectionsMesh.material.uniforms.uPulseColors.value[lastPulseIndex].copy(randomColor);
-                }
-                waves.push(new Wave(clientX * render.dpi, clientY * render.dpi));
-            }
-        }
-
-        renderer.domElement.addEventListener('click', (e) => {
-            if (e.target.closest('.ui-panel')) return;
-            triggerPulse(e.clientX, e.clientY);
-        });
-        renderer.domElement.addEventListener('touchstart', (e) => {
-            if (e.target.closest('.ui-panel')) return;
-            e.preventDefault();
-            if (e.touches.length === 1) {
-                triggerPulse(e.touches[0].clientX, e.touches[0].clientY);
-            }
-        }, { passive: false });
-
-        let touchStartX = 0;
-        renderer.domElement.addEventListener('touchstart', (e) => {
-            if (e.target.closest('.ui-panel')) return;
-            if (e.touches.length === 1) {
-                touchStartX = e.touches[0].clientX;
-            }
-        }, { passive: false });
-
-        renderer.domElement.addEventListener('touchend', (e) => {
-            if (e.target.closest('.ui-panel')) return;
-            if (e.changedTouches.length === 1 && !config.isTransitioning) {
-                const touchEndX = e.changedTouches[0].clientX;
-                const deltaX = touchEndX - touchStartX;
-                if (Math.abs(deltaX) > 100) {
-                    const newFormation = deltaX > 0 ?
-                        (config.currentFormation + 1) % config.numFormations :
-                        (config.currentFormation - 1 + config.numFormations) % config.numFormations;
-                    createNetworkVisualization(newFormation, config.densityFactor, true);
-                    controls.autoRotate = false;
-                    setTimeout(() => { controls.autoRotate = true; }, 4000);
-                }
-            }
-        }, { passive: false });
-
-        document.addEventListener('keydown', (e) => {
-            if (e.target.closest('.ui-panel')) return;
-            if (!config.isTransitioning) {
-                if (e.key === '1') {
-                    const newFormation = (config.currentFormation - 1 + config.numFormations) % config.numFormations;
-                    createNetworkVisualization(newFormation, config.densityFactor, true);
-                    controls.autoRotate = false;
-                    setTimeout(() => { controls.autoRotate = true; }, 4000);
-                } else if (e.key === '2') {
-                    const newFormation = (config.currentFormation + 1) % config.numFormations;
-                    createNetworkVisualization(newFormation, config.densityFactor, true);
-                    controls.autoRotate = false;
-                    setTimeout(() => { controls.autoRotate = true; }, 4000);
-                }
-            }
-        });
-
-        renderer.domElement.addEventListener('deviceorientation', (e) => {
-            if (e.beta !== null && Math.abs(e.beta) > 60) {
-                controls.reset();
-                controls.autoRotate = false;
-                setTimeout(() => { controls.autoRotate = true; }, 2000);
-            }
-        });
-
-        const themeButtons = document.querySelectorAll('.theme-button');
-        themeButtons.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const idx = parseInt(btn.dataset.theme, 10);
-                updateTheme(idx);
-                themeButtons.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-            });
-        });
-
-        const densitySlider = document.getElementById('density-slider');
-        const densityValue = document.getElementById('density-value');
-        let densityTimeout;
-        densitySlider.addEventListener('input', (e) => {
-            e.stopPropagation();
-            const val = parseInt(densitySlider.value, 10);
-            config.densityFactor = val / 100;
-            densityValue.textContent = `${val}%`;
-            clearTimeout(densityTimeout);
-            densityTimeout = setTimeout(() => {
-                createNetworkVisualization(config.currentFormation, config.densityFactor, false);
-            }, 300);
-        });
-
-        const clock = new THREE.Clock();
-
-        function animate() {
-            requestAnimationFrame(animate);
-            const t = clock.getElapsedTime();
-            if (started) {
-                msgOpacity = Math.max(0, msgOpacity - 0.05);
-            }
-            if (config.isTransitioning && neuralNetwork && config.targetFormation) {
-                config.transitionProgress += 1 / (config.transitionDuration * 60);
-                const easedProgress = easingUtils.easeInOutCubic(config.transitionProgress);
-                if (config.transitionProgress >= 1) {
-                    config.transitionProgress = 0;
-                    config.isTransitioning = false;
-                    config.currentFormation = config.targetFormation.nodes[0].formationIndex || (config.currentFormation + 1) % config.numFormations;
-                    createNetworkVisualization(config.currentFormation, config.densityFactor, false);
-                }
-                nodesMesh.material.uniforms.uTransitionProgress.value = easedProgress;
-                connectionsMesh.material.uniforms.uTransitionProgress.value = easedProgress;
-                const nodePositions = nodesMesh.geometry.attributes.position.array;
-                const targetPositions = nodesMesh.geometry.attributes.targetPosition.array;
-                const connectionStartPoints = connectionsMesh.geometry.attributes.startPoint.array;
-                const connectionEndPoints = connectionsMesh.geometry.attributes.endPoint.array;
-                const targetStartPoints = connectionsMesh.geometry.attributes.targetStartPoint.array;
-                const targetEndPoints = connectionsMesh.geometry.attributes.targetEndPoint.array;
-                neuralNetwork.nodes.forEach((node, i) => {
-                    const target = config.targetFormation.nodes[i] || config.targetFormation.nodes[0];
-                    nodePositions[i * 3] = THREE.MathUtils.lerp(node.position.x, target.position.x, easedProgress);
-                    nodePositions[i * 3 + 1] = THREE.MathUtils.lerp(node.position.y, target.position.y, easedProgress);
-                    nodePositions[i * 3 + 2] = THREE.MathUtils.lerp(node.position.z, target.position.z, easedProgress);
-                });
-            
-                let connIndex = 0;
-                const processedConnections = new Set();
-                neuralNetwork.nodes.forEach((node, nodeIndex) => {
-                    node.connections.forEach(connection => {
-                        const connectedNode = connection.node;
-                        const connectedIndex = neuralNetwork.nodes.indexOf(connectedNode);
-                        if (connectedIndex === -1) return;
-                        const key = [Math.min(nodeIndex, connectedIndex), Math.max(nodeIndex, connectedIndex)].join('-');
-                        if (!processedConnections.has(key)) {
-                            processedConnections.add(key);
-                            const targetNode1 = config.targetFormation.nodes[nodeIndex] || config.targetFormation.nodes[0];
-                            const targetNode2 = config.targetFormation.nodes[connectedIndex] || config.targetFormation.nodes[0];
-                            for (let i = 0; i < 20; i++) {
-                                connectionStartPoints[connIndex * 3] = THREE.MathUtils.lerp(
-                                    connectionStartPoints[connIndex * 3], targetNode1.position.x, easedProgress
-                                );
-                                connectionStartPoints[connIndex * 3 + 1] = THREE.MathUtils.lerp(
-                                    connectionStartPoints[connIndex * 3 + 1], targetNode1.position.y, easedProgress
-                                );
-                                connectionStartPoints[connIndex * 3 + 2] = THREE.MathUtils.lerp(
-                                    connectionStartPoints[connIndex * 3 + 2], targetNode1.position.z, easedProgress
-                                );
-                                connectionEndPoints[connIndex * 3] = THREE.MathUtils.lerp(
-                                    connectionEndPoints[connIndex * 3], targetNode2.position.x, easedProgress
-                                );
-                                connectionEndPoints[connIndex * 3 + 1] = THREE.MathUtils.lerp(
-                                    connectionEndPoints[connIndex * 3 + 1], targetNode2.position.y, easedProgress
-                                );
-                                connectionEndPoints[connIndex * 3 + 2] = THREE.MathUtils.lerp(
-                                    connectionEndPoints[connIndex * 3 + 2], targetNode2.position.z, easedProgress
-                                );
-                                targetStartPoints[connIndex * 3] = targetNode1.position.x;
-                                targetStartPoints[connIndex * 3 + 1] = targetNode1.position.y;
-                                targetStartPoints[connIndex * 3 + 2] = targetNode1.position.z;
-                                const raycaster = new THREE.Raycaster();
-
+        // Interaction helpers (declare once, at top level)
+        const raycaster = new THREE.Raycaster();
         const pointer = new THREE.Vector2();
         const interactionPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
         const interactionPoint = new THREE.Vector3();
@@ -1531,7 +1388,7 @@
             }
         });
 
-        renderer.domElement.addEventListener('deviceorientation', (e) => {
+        window.addEventListener('deviceorientation', (e) => {
             if (e.beta !== null && Math.abs(e.beta) > 60) {
                 controls.reset();
                 controls.autoRotate = false;
@@ -1569,9 +1426,11 @@
         function animate() {
             requestAnimationFrame(animate);
             const t = clock.getElapsedTime();
+
             if (started) {
                 msgOpacity = Math.max(0, msgOpacity - 0.05);
             }
+
             if (config.isTransitioning && neuralNetwork && config.targetFormation) {
                 config.transitionProgress += 1 / (config.transitionDuration * 60);
                 const easedProgress = easingUtils.easeInOutCubic(config.transitionProgress);
@@ -1580,73 +1439,76 @@
                     config.isTransitioning = false;
                     config.currentFormation = config.targetFormation.nodes[0].formationIndex || (config.currentFormation + 1) % config.numFormations;
                     createNetworkVisualization(config.currentFormation, config.densityFactor, false);
-                }
-                nodesMesh.material.uniforms.uTransitionProgress.value = easedProgress;
-                connectionsMesh.material.uniforms.uTransitionProgress.value = easedProgress;
-                const nodePositions = nodesMesh.geometry.attributes.position.array;
-                const targetPositions = nodesMesh.geometry.attributes.targetPosition.array;
-                const connectionStartPoints = connectionsMesh.geometry.attributes.startPoint.array;
-                const connectionEndPoints = connectionsMesh.geometry.attributes.endPoint.array;
-                const targetStartPoints = connectionsMesh.geometry.attributes.targetStartPoint.array;
-                const targetEndPoints = connectionsMesh.geometry.attributes.targetEndPoint.array;
-                neuralNetwork.nodes.forEach((node, i) => {
-                    const target = config.targetFormation.nodes[i] || config.targetFormation.nodes[0];
-                    nodePositions[i * 3] = THREE.MathUtils.lerp(node.position.x, target.position.x, easedProgress);
-                    nodePositions[i * 3 + 1] = THREE.MathUtils.lerp(node.position.y, target.position.y, easedProgress);
-                    nodePositions[i * 3 + 2] = THREE.MathUtils.lerp(node.position.z, target.position.z, easedProgress);
-                });
-                let connIndex = 0;
-                const processedConnections = new Set();
-                neuralNetwork.nodes.forEach((node, nodeIndex) => {
-                    node.connections.forEach(connection => {
-                        const connectedNode = connection.node;
-                        const connectedIndex = neuralNetwork.nodes.indexOf(connectedNode);
-                        if (connectedIndex === -1) return;
-                        const key = [Math.min(nodeIndex, connectedIndex), Math.max(nodeIndex, connectedIndex)].join('-');
-                        if (!processedConnections.has(key)) {
-                            processedConnections.add(key);
-                            const targetNode1 = config.targetFormation.nodes[nodeIndex] || config.targetFormation.nodes[0];
-                            const targetNode2 = config.targetFormation.nodes[connectedIndex] || config.targetFormation.nodes[0];
-                            for (let i = 0; i < 20; i++) {
-                                connectionStartPoints[connIndex * 3] = THREE.MathUtils.lerp(
-                                    connectionStartPoints[connIndex * 3], targetNode1.position.x, easedProgress
-                                );
-                                connectionStartPoints[connIndex * 3 + 1] = THREE.MathUtils.lerp(
-                                    connectionStartPoints[connIndex * 3 + 1], targetNode1.position.y, easedProgress
-                                );
-                                connectionStartPoints[connIndex * 3 + 2] = THREE.MathUtils.lerp(
-                                    connectionStartPoints[connIndex * 3 + 2], targetNode1.position.z, easedProgress
-                                );
-                                connectionEndPoints[connIndex * 3] = THREE.MathUtils.lerp(
-                                    connectionEndPoints[connIndex * 3], targetNode2.position.x, easedProgress
-                                );
-                                connectionEndPoints[connIndex * 3 + 1] = THREE.MathUtils.lerp(
-                                    connectionEndPoints[connIndex * 3 + 1], targetNode2.position.y, easedProgress
-                                );
-                                connectionEndPoints[connIndex * 3 + 2] = THREE.MathUtils.lerp(
-                                    connectionEndPoints[connIndex * 3 + 2], targetNode2.position.z, easedProgress
-                                );
-                                targetStartPoints[connIndex * 3] = targetNode1.position.x;
-                                targetStartPoints[connIndex * 3 + 1] = targetNode1.position.y;
-                                targetStartPoints[connIndex * 3 + 2] = targetNode1.position.z;
-                                targetEndPoints[connIndex * 3] = targetNode2.position.x;
-                                targetEndPoints[connIndex * 3 + 1] = targetNode2.position.y;
-                                targetEndPoints[connIndex * 3 + 2] = targetNode2.position.z;
-                                connIndex++;
-                            }
-                        }
+                } else {
+                    nodesMesh.material.uniforms.uTransitionProgress.value = easedProgress;
+                    connectionsMesh.material.uniforms.uTransitionProgress.value = easedProgress;
+
+                    const nodePositions = nodesMesh.geometry.attributes.position.array;
+                    neuralNetwork.nodes.forEach((node, i) => {
+                        const target = config.targetFormation.nodes[i] || config.targetFormation.nodes[0];
+                        nodePositions[i * 3] = THREE.MathUtils.lerp(node.position.x, target.position.x, easedProgress);
+                        nodePositions[i * 3 + 1] = THREE.MathUtils.lerp(node.position.y, target.position.y, easedProgress);
+                        nodePositions[i * 3 + 2] = THREE.MathUtils.lerp(node.position.z, target.position.z, easedProgress);
                     });
-                });
-                nodesMesh.geometry.attributes.position.needsUpdate = true;
-                connectionsMesh.geometry.attributes.startPoint.needsUpdate = true;
-                connectionsMesh.geometry.attributes.endPoint.needsUpdate = true;
-                connectionsMesh.geometry.attributes.targetStartPoint.needsUpdate = true;
-                connectionsMesh.geometry.attributes.targetEndPoint.needsUpdate = true;
+                    nodesMesh.geometry.attributes.position.needsUpdate = true;
+
+                    const startArr = connectionsMesh.geometry.attributes.startPoint.array;
+                    const endArr = connectionsMesh.geometry.attributes.endPoint.array;
+                    const targetStartArr = connectionsMesh.geometry.attributes.targetStartPoint.array;
+                    const targetEndArr = connectionsMesh.geometry.attributes.targetEndPoint.array;
+
+                    let connIndex = 0;
+                    const processedConnections = new Set();
+                    const numSegments = 20;
+
+                    neuralNetwork.nodes.forEach((node, nodeIndex) => {
+                        node.connections.forEach(connection => {
+                            const connectedNode = connection.node;
+                            const connectedIndex = neuralNetwork.nodes.indexOf(connectedNode);
+                            if (connectedIndex === -1) return;
+                            const key = [Math.min(nodeIndex, connectedIndex), Math.max(nodeIndex, connectedIndex)].join('-');
+                            if (!processedConnections.has(key)) {
+                                processedConnections.add(key);
+                                const targetNode1 = config.targetFormation.nodes[nodeIndex] || config.targetFormation.nodes[0];
+                                const targetNode2 = config.targetFormation.nodes[connectedIndex] || config.targetFormation.nodes[0];
+                                for (let i = 0; i < numSegments; i++) {
+                                    startArr[connIndex * 3] = THREE.MathUtils.lerp(startArr[connIndex * 3], targetNode1.position.x, easedProgress);
+                                    startArr[connIndex * 3 + 1] = THREE.MathUtils.lerp(startArr[connIndex * 3 + 1], targetNode1.position.y, easedProgress);
+                                    startArr[connIndex * 3 + 2] = THREE.MathUtils.lerp(startArr[connIndex * 3 + 2], targetNode1.position.z, easedProgress);
+
+                                    endArr[connIndex * 3] = THREE.MathUtils.lerp(endArr[connIndex * 3], targetNode2.position.x, easedProgress);
+                                    endArr[connIndex * 3 + 1] = THREE.MathUtils.lerp(endArr[connIndex * 3 + 1], targetNode2.position.y, easedProgress);
+                                    endArr[connIndex * 3 + 2] = THREE.MathUtils.lerp(endArr[connIndex * 3 + 2], targetNode2.position.z, easedProgress);
+
+                                    targetStartArr[connIndex * 3] = targetNode1.position.x;
+                                    targetStartArr[connIndex * 3 + 1] = targetNode1.position.y;
+                                    targetStartArr[connIndex * 3 + 2] = targetNode1.position.z;
+
+                                    targetEndArr[connIndex * 3] = targetNode2.position.x;
+                                    targetEndArr[connIndex * 3 + 1] = targetNode2.position.y;
+                                    targetEndArr[connIndex * 3 + 2] = targetNode2.position.z;
+
+                                    connIndex++;
+                                }
+                            }
+                        });
+                    });
+                    connectionsMesh.geometry.attributes.startPoint.needsUpdate = true;
+                    connectionsMesh.geometry.attributes.endPoint.needsUpdate = true;
+                    connectionsMesh.geometry.attributes.targetStartPoint.needsUpdate = true;
+                    connectionsMesh.geometry.attributes.targetEndPoint.needsUpdate = true;
+                }
             }
+
+            // Breathe
             config.breatheScale = 1.0 + 0.05 * Math.sin(t * 0.8);
-            nodesMesh.material.uniforms.uBreatheScale.value = config.breatheScale;
-            connectionsMesh.material.uniforms.uBreatheScale.value = config.breatheScale;
-            if (neuralNetwork.nodes[0].formationIndex === 6) {
+            if (nodesMesh && connectionsMesh) {
+                nodesMesh.material.uniforms.uBreatheScale.value = config.breatheScale;
+                connectionsMesh.material.uniforms.uBreatheScale.value = config.breatheScale;
+            }
+
+            // Moving formations
+            if (neuralNetwork && neuralNetwork.nodes[0].formationIndex === 6) {
                 const nodePositions = nodesMesh.geometry.attributes.position.array;
                 neuralNetwork.nodes.forEach((node, i) => {
                     if (node.spiralIndex !== undefined) {
@@ -1659,8 +1521,11 @@
                     }
                 });
                 nodesMesh.geometry.attributes.position.needsUpdate = true;
+
+                // Update connection endpoints to match new positions
                 let connIndex = 0;
                 const processedConnections = new Set();
+                const numSegments = 20;
                 neuralNetwork.nodes.forEach((node, nodeIndex) => {
                     node.connections.forEach(connection => {
                         const connectedNode = connection.node;
@@ -1671,7 +1536,7 @@
                             processedConnections.add(key);
                             const startNode = neuralNetwork.nodes[nodeIndex];
                             const endNode = neuralNetwork.nodes[connectedIndex];
-                            for (let i = 0; i < 20; i++) {
+                            for (let i = 0; i < numSegments; i++) {
                                 connectionsMesh.geometry.attributes.startPoint.array[connIndex * 3] = startNode.position.x;
                                 connectionsMesh.geometry.attributes.startPoint.array[connIndex * 3 + 1] = startNode.position.y;
                                 connectionsMesh.geometry.attributes.startPoint.array[connIndex * 3 + 2] = startNode.position.z;
@@ -1694,15 +1559,16 @@
                 connectionsMesh.geometry.attributes.targetStartPoint.needsUpdate = true;
                 connectionsMesh.geometry.attributes.targetEndPoint.needsUpdate = true;
             }
-            if (neuralNetwork.nodes[0].formationIndex === 5) {
+
+            if (neuralNetwork && neuralNetwork.nodes[0].formationIndex === 5) {
                 const nodePositions = nodesMesh.geometry.attributes.position.array;
                 neuralNetwork.nodes.forEach((node, i) => {
                     if (node.level > 0) {
-                        const t = node.spiralPosition || 0;
+                        const tt = node.spiralPosition || 0;
                         const xSign = node.position.x > 0 ? 1 : -1;
-                        const theta = t * Math.PI * 0.5 + Math.PI * 0.75;
-                        const scale = 25 + 2 * Math.sin(t * 1.5);
-                        const x = xSign * 16 * scale * Math.sin(theta) ** 3;
+                        const theta = tt * Math.PI * 0.5 + Math.PI * 0.75;
+                        const scale = 25 + 2 * Math.sin(tt * 1.5);
+                        const x = xSign * 16 * scale * Math.pow(Math.sin(theta), 3.0);
                         const y = scale * (13 * Math.cos(theta) - 5 * Math.cos(2 * theta) - 2 * Math.cos(3 * theta) - Math.cos(4 * theta));
                         const z = THREE.MathUtils.randFloatSpread(4);
                         nodePositions[i * 3] = x;
@@ -1711,8 +1577,10 @@
                     }
                 });
                 nodesMesh.geometry.attributes.position.needsUpdate = true;
+
                 let connIndex = 0;
                 const processedConnections = new Set();
+                const numSegments = 20;
                 neuralNetwork.nodes.forEach((node, nodeIndex) => {
                     node.connections.forEach(connection => {
                         const connectedNode = connection.node;
@@ -1723,7 +1591,7 @@
                             processedConnections.add(key);
                             const startNode = neuralNetwork.nodes[nodeIndex];
                             const endNode = neuralNetwork.nodes[connectedIndex];
-                            for (let i = 0; i < 20; i++) {
+                            for (let i = 0; i < numSegments; i++) {
                                 connectionsMesh.geometry.attributes.startPoint.array[connIndex * 3] = startNode.position.x;
                                 connectionsMesh.geometry.attributes.startPoint.array[connIndex * 3 + 1] = startNode.position.y;
                                 connectionsMesh.geometry.attributes.startPoint.array[connIndex * 3 + 2] = startNode.position.z;
@@ -1746,14 +1614,19 @@
                 connectionsMesh.geometry.attributes.targetStartPoint.needsUpdate = true;
                 connectionsMesh.geometry.attributes.targetEndPoint.needsUpdate = true;
             }
-            starfield.points.geometry.attributes.position.array.forEach((_, i) => {
-                const velocity = starfield.points.geometry.attributes.velocity.array;
-                starfield.points.geometry.attributes.position.array[i] += velocity[i] * 0.1;
-                if (Math.abs(starfield.points.geometry.attributes.position.array[i]) > 200) {
-                    starfield.points.geometry.attributes.position.array[i] *= -0.5;
+
+            // Starfield motion
+            const posArr = starfield.points.geometry.attributes.position.array;
+            const velArr = starfield.points.geometry.attributes.velocity.array;
+            for (let i = 0; i < posArr.length; i++) {
+                posArr[i] += velArr[i] * 0.1;
+                if (Math.abs(posArr[i]) > 200) {
+                    posArr[i] *= -0.5;
                 }
-            });
+            }
             starfield.points.geometry.attributes.position.needsUpdate = true;
+
+            // Shooting stars
             starfield.shootingStars = starfield.shootingStars.filter(star => star.life > 0);
             if (Math.random() < 0.02) {
                 const newStar = createShootingStar();
@@ -1776,14 +1649,22 @@
                     star.line.material.dispose();
                 }
             });
-            nodesMesh.material.uniforms.uTime.value = t;
-            connectionsMesh.material.uniforms.uTime.value = t;
+
+            // Uniform time
+            if (nodesMesh && connectionsMesh) {
+                nodesMesh.material.uniforms.uTime.value = t;
+                connectionsMesh.material.uniforms.uTime.value = t;
+            }
+
             controls.update();
-            ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+
+            // Ripples overlay
+            ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
             waves.forEach(wave => {
                 wave.update();
                 wave.render();
             });
+
             composer.render();
         }
 
@@ -1793,8 +1674,9 @@
             render.height = window.innerHeight;
             render.hHeight = render.height * 0.5;
             render.dpi = window.devicePixelRatio;
-            canvasElement.width = render.width * render.dpi;
-            canvasElement.height = render.height * render.dpi;
+            overlayCanvas.width = render.width * render.dpi;
+            overlayCanvas.height = render.height * render.dpi;
+
             camera.aspect = render.width / render.height;
             camera.updateProjectionMatrix();
             renderer.setSize(render.width, render.height);
